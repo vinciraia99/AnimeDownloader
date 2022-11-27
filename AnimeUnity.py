@@ -12,31 +12,32 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
+from AnimeWebSite import AnimeWebSite
 
 
-class AnimeUnity:
+class AnimeUnity(AnimeWebSite):
 
     def __init__(self, driver: webdriver):
-        self.incomplete = False
-        self.airing = False
-        self.name = None
-        self.driver = driver
-        self.plyrControlListIndex = 18
-        self.__latest = 0
-        self.__indexanime = 1
+        super(AnimeUnity, self).__init__(driver)
+        self.__latest=0
 
-    def __fixUrl(self, link: string):
-        if "www.animeunity" in link:
-            try:
-                split = link.split("/")
-                link_filter = split[0] + "/"
-                for i in range(1, 5):
-                    link_filter += "/" + split[i]
-                return link_filter
-            except Exception:
-                return None
+    def __largeEpisodeFetch(self, start: int) -> array:
+        episode_nav = self.driver.find_elements(by=By.ID, value="episode-nav")
+        if len(episode_nav) >0 :
+            episodiTab = self.driver.find_elements(by=By.CLASS_NAME, value="btn-episode-nav")
+            if start != 0:
+                half = int(episodiTab[int(len(episodiTab) / 2)].text.split("-")[0])
+                if start < half:
+                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(0, int(len(episodiTab) / 2), start, episodiTab)
+                elif start > half:
+                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab)), start,
+                                                                episodiTab)
+                elif start == half:
+                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab) / 2), start,
+                                                                episodiTab)
+            return episodiTab
         else:
-            return None
+            return episode_nav
 
     def __findNewUrl(self, plyrControlList: array):
         if plyrControlList[self.plyrControlListIndex].get_attribute("href") is None:
@@ -48,34 +49,6 @@ class AnimeUnity:
         elif ".mp4" in plyrControlList[self.plyrControlListIndex].get_attribute("href"):
             return plyrControlList[self.plyrControlListIndex].get_attribute("href")
         return None
-
-    def __rangeEpisodeFindFromStartIndex(self, start: int, end: int, episode: int, episodiTab: list):
-        if start == end:
-            if int(episodiTab[start].text.split("-")[0]) <= episode <= int(episodiTab[start].text.split("-")[1]):
-                return episodiTab[start:len(episodiTab)]
-        else:
-            for x in range(start, end):
-                if int(episodiTab[x].text.split("-")[0]) <= episode <= int(episodiTab[x].text.split("-")[1]):
-                    return episodiTab[x:len(episodiTab)]
-
-    def __largeEpisodeFetch(self, start: int) -> array:
-        episode_nav = self.driver.find_elements(by=By.ID, value="episode-nav")
-        if len(episode_nav) >0 :
-            episodiTab = self.driver.find_elements(by=By.CLASS_NAME, value="btn-episode-nav")
-            if start != 0:
-                half = int(episodiTab[int(len(episodiTab) / 2)].text.split("-")[0])
-                if start < half:
-                    return self.__rangeEpisodeFindFromStartIndex(0, int(len(episodiTab) / 2), start, episodiTab)
-                elif start > half:
-                    return self.__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab)), start,
-                                                                episodiTab)
-                elif start == half:
-                    return self.__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab) / 2), start,
-                                                                episodiTab)
-            return episodiTab
-        else:
-            return episode_nav
-
 
     def __ceckActionChain(self, e: WebElement, value: string):
         ActionChains(self.driver).move_to_element(e).click().perform()
@@ -94,26 +67,9 @@ class AnimeUnity:
         except TimeoutException:
             return None
 
-    def __checkUrl(self, link: string, index: int, episodio : WebElement = None) -> bool:
-        flag = False
-        if index < 10:
-            index = "0" + str(index)
-        else:
-            index = str(index)
-            flag = True
-        for e in link.split("_"):
-            if index == e:
-                return True
-            elif flag and "0" + index == e:
-                return True
-            elif len(e.split("-"))>0 and episodio.text.replace(" ","") == e:
-                self.__indexanime = int(episodio.text.split("-")[1])
-                return True
-        return False
-
     def getEpisodeList(self, link: string, start: int = 0) -> array:
         from utility import customPrint
-        url = self.__fixUrl(link)
+        url = self._AnimeWebSite__fixUrl(link,"www.animeunity")
         if url is not None:
             self.driver.get(url)
             self.name = self.__getAnimeName()
@@ -126,7 +82,7 @@ class AnimeUnity:
             listLargeEpisode = self.__largeEpisodeFetch(start)
             listEpisodi = []
             if start != 0:
-                self.__indexanime = start
+                self._AnimeWebSite__indexanime = start
             if len(listLargeEpisode) == 0:
                 return self.__getEpisodeTab(0, listLargeEpisode, start)
             else:
@@ -136,6 +92,15 @@ class AnimeUnity:
                 return listEpisodi
         else:
             return None
+
+    def __getTotalEpisode(self):
+        for item in self.driver.find_elements(by=By.CLASS_NAME, value="info-item"):
+            try:
+                e = int(item.text.replace("Episodi\n",""))
+                return e
+            except ValueError:
+                pass
+
 
     def __getEpisodeTab(self, episodeTab, listLargeEpisode, start) -> array:
         from utility import customPrint
@@ -165,11 +130,11 @@ class AnimeUnity:
                     new_url_download = self.__findNewUrl(
                         self.driver.find_elements(by=By.CLASS_NAME, value="plyr__control"))
                     try:
-                        if self.__checkUrl(new_url_download,  self.__indexanime,episodi[x]):
-                            customPrint("Acquisito l'episodio " + str( self.__indexanime) + " di " + str(lentotalepisodi) + " : " +
+                        if self._AnimeWebSite__checkUrl(new_url_download,  self._AnimeWebSite__indexanime,self.__getTotalEpisode(),episodi[x]):
+                            customPrint("Acquisito l'episodio " + str( self._AnimeWebSite__indexanime) + " di " + str(lentotalepisodi) + " : " +
                                         new_url_download.split("filename=")[1])
                             listEpisodi.append(new_url_download)
-                            self.__indexanime += 1
+                            self._AnimeWebSite__indexanime += 1
                             break
                     except IndexError:
                         raise Exception("AnimeUnity non ha disponibile per il download l'anime")
@@ -235,15 +200,15 @@ class AnimeUnity:
     def __downloadWithUrl2(self, dir, splitEp, anime_name):
         print("Download fallito, provo con un'altro server")
         downloaded = False
-        if self.__latest != 0:
-            downloaded = self.__download(dir, self.__latest, splitEp, anime_name)
+        if self._AnimeWebSite__latest != 0:
+            downloaded = self.__download(dir, self._AnimeWebSite__latest, splitEp, anime_name)
         if not downloaded:
             for i in range(0, 100):
-                if i != self.__latest:
+                if i != self._AnimeWebSite__latest:
                     downloaded = self.__download(dir, i, splitEp, anime_name)
                     if downloaded:
                         break
-        self.__latest = i
+        self._AnimeWebSite__latest = i
         os.rename(os.path.join(dir, splitEp + ".tmp"), os.path.join(dir, splitEp))
         print("")
         return downloaded

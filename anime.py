@@ -1,16 +1,19 @@
 import sys
 import traceback
 
+from AnimeWebSite import AnimeWebSite
 from utility import initDriver, getAnimeClass, cleanProgram
-
 driver = initDriver()
+
 try:
     if len(sys.argv) == 2:
         print(sys.argv[1])
         my_url = sys.argv[1]
         anime = getAnimeClass(my_url, driver)
         if anime is not None:
-            episodeList = anime.downloadAnime(my_url,267)
+            episodeList = anime.downloadAnime(my_url)
+
+
     else:
         while True:
             my_url = input("Inserisci l'url dell'anime da scaricare: ")
