@@ -23,6 +23,7 @@ class AnimeUnity:
         self.driver = driver
         self.plyrControlListIndex = 18
         self.__latest = 0
+        self.__indexanime = 1
 
     def __fixUrl(self, link: string):
         if "www.animeunity" in link:
@@ -64,12 +65,12 @@ class AnimeUnity:
             if start != 0:
                 half = int(episodiTab[int(len(episodiTab) / 2)].text.split("-")[0])
                 if start < half:
-                    return self._rangeEpisodeFindFromStartIndex(0, int(len(episodiTab) / 2), start, episodiTab)
+                    return self.__rangeEpisodeFindFromStartIndex(0, int(len(episodiTab) / 2), start, episodiTab)
                 elif start > half:
-                    return self._rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab)), start,
+                    return self.__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab)), start,
                                                                 episodiTab)
                 elif start == half:
-                    return self._rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab) / 2), start,
+                    return self.__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab) / 2), start,
                                                                 episodiTab)
             return episodiTab
         else:
@@ -93,13 +94,20 @@ class AnimeUnity:
         except TimeoutException:
             return None
 
-    def __checkUrl(self, link: string, index: int) -> bool:
+    def __checkUrl(self, link: string, index: int, episodio : WebElement = None) -> bool:
+        flag = False
         if index < 10:
             index = "0" + str(index)
         else:
             index = str(index)
+            flag = True
         for e in link.split("_"):
             if index == e:
+                return True
+            elif flag and "0" + index == e:
+                return True
+            elif len(e.split("-"))>0 and episodio.text.replace(" ","") == e:
+                self.__indexanime = int(episodio.text.split("-")[1])
                 return True
         return False
 
@@ -117,24 +125,27 @@ class AnimeUnity:
             customPrint("Acquisisco gli episodi per l'anime: " + self.name)
             listLargeEpisode = self.__largeEpisodeFetch(start)
             listEpisodi = []
+            if start != 0:
+                self.__indexanime = start
             if len(listLargeEpisode) == 0:
-                return self.__getEpisodeTab(0, listEpisodi, listLargeEpisode, start)
+                return self.__getEpisodeTab(0, listLargeEpisode, start)
             else:
-                for episodeTab in range(0, len(listLargeEpisode)):
-                    return self.__getEpisodeTab(episodeTab, listEpisodi, listLargeEpisode, start)
+                listEpisodi += self.__getEpisodeTab(0, listLargeEpisode, start)
+                for episodeTab in range(1, len(listLargeEpisode)):
+                    listEpisodi += self.__getEpisodeTab(episodeTab, listLargeEpisode, 0)
+                return listEpisodi
         else:
             return None
 
-    def __getEpisodeTab(self, episodeTab, listEpisodi, listLargeEpisode, start) -> array:
+    def __getEpisodeTab(self, episodeTab, listLargeEpisode, start) -> array:
         from utility import customPrint
-        i = start + 1
-        if len(listLargeEpisode) > 0 and episodeTab == 0:
+        listEpisodi = []
+        if len(listLargeEpisode) > 0:
             lentotalepisodi = listLargeEpisode[len(listLargeEpisode) - 1].text.split("-")[1]
-            start = start - int(listLargeEpisode[episodeTab].text.split("-")[0])
-        elif len(listLargeEpisode) > 0:
-            start = 0
+            if start != 0:
+                start = start - int(listLargeEpisode[episodeTab].text.split("-")[0])
         if len(listLargeEpisode) != 0:
-            self._ceckActionChain(listLargeEpisode[episodeTab], ".btn-episode-nav.active")
+            self.__ceckActionChain(listLargeEpisode[episodeTab], ".btn-episode-nav.active")
         WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, "episode-item")))
         episodi = self.driver.find_elements(by=By.CLASS_NAME, value="episode-item")
         lenepisodi = len(episodi)
@@ -154,11 +165,11 @@ class AnimeUnity:
                     new_url_download = self.__findNewUrl(
                         self.driver.find_elements(by=By.CLASS_NAME, value="plyr__control"))
                     try:
-                        if self.__checkUrl(new_url_download, i):
-                            customPrint("Acquisito l'episodio " + str(i) + " di " + str(lentotalepisodi) + " : " +
+                        if self.__checkUrl(new_url_download,  self.__indexanime,episodi[x]):
+                            customPrint("Acquisito l'episodio " + str( self.__indexanime) + " di " + str(lentotalepisodi) + " : " +
                                         new_url_download.split("filename=")[1])
                             listEpisodi.append(new_url_download)
-                            i += 1
+                            self.__indexanime += 1
                             break
                     except IndexError:
                         raise Exception("AnimeUnity non ha disponibile per il download l'anime")
