@@ -10,7 +10,7 @@ try:
         my_url = sys.argv[1]
         anime = getAnimeClass(my_url, driver)
         if anime is not None:
-            episodeList = anime.downloadAnime(None,my_url)
+            episodeList = anime.downloadAnime(my_url,267)
     else:
         while True:
             my_url = input("Inserisci l'url dell'anime da scaricare: ")

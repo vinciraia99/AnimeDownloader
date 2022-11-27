@@ -1,19 +1,16 @@
-import array
 import os
 import string
 import sys
-import urllib.error
-import requests
-import wget
-from selenium.webdriver.chrome import webdriver
-from selenium.webdriver.chrome.options import Options
-from urllib import request
+
 import progressbar
+import requests
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from AnimeUnity import AnimeUnity
+from AnimeWorld import AnimeWorld
 
 pbar = None
 
@@ -52,12 +49,14 @@ def setOption():
 
 
 def initDriver():
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=setOption())
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
 
 def getAnimeClass(url: string, driver: webdriver):
     if "animeunity" in url:
         return AnimeUnity(driver)
+    elif "animeworld" in url:
+        return AnimeWorld(driver)
 
 
 def show_progress(block_num, block_size, total_size):
