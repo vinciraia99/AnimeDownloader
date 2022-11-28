@@ -4,6 +4,7 @@ import string
 import urllib
 from urllib import request
 
+import requests
 import wget
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, NoSuchElementException
@@ -89,11 +90,14 @@ class AnimeWorld(AnimeWebSite):
             customPrint("Acquisisco gli episodi per l'anime: " + self.name)
             listLargeEpisode = self.__largeEpisodeFetch(start)
             listEpisodi = []
+            if start != 0:
+                self._AnimeWebSite__indexanime = start
             if len(listLargeEpisode) == 0:
-                return self.__getEpisodeTab(0, listEpisodi, listLargeEpisode, start)
+                listEpisodi+= self.__getEpisodeTab(0, listLargeEpisode, start)
             else:
-                for episodeTab in range(0, len(listLargeEpisode)):
-                    return self.__getEpisodeTab(episodeTab, listEpisodi, listLargeEpisode, start)
+                listEpisodi += self.__getEpisodeTab(0, listLargeEpisode, start)
+                for episodeTab in range(1, len(listLargeEpisode)):
+                    listEpisodi += self.__getEpisodeTab(episodeTab, listLargeEpisode, 0)
         else:
             return None
 
@@ -112,19 +116,19 @@ class AnimeWorld(AnimeWebSite):
             except ValueError:
                 pass
 
-    def __getEpisodeTab(self, episodeTab, listEpisodi, listLargeEpisode, start) -> array:
+    def __getEpisodeTab(self, episodeTab, listLargeEpisode, start) -> array:
         from utility import customPrint
-        i = start + 1
         if len(listLargeEpisode) > 0:
             lentotalepisodi = listLargeEpisode[len(listLargeEpisode) - 1].text.split("-")[1]
-            if start != 0 and episodeTab != 0:
-                start = start - listLargeEpisode[episodeTab].text.split("-")[1]
+            if start != 0:
+                start = start - int(listLargeEpisode[episodeTab].text.replace(" ","").split("-")[0])
         if len(listLargeEpisode) != 0:
             self.__ceckActionChain(listLargeEpisode[episodeTab], "span.rangetitle.active")
         servertab = self.driver.find_element(by=By.CSS_SELECTOR, value="div.server.active")
         episoditab = servertab.find_element(by=By.CSS_SELECTOR, value=".episodes.range.active")
         episodi = episoditab.find_elements(by=By.CLASS_NAME, value="episode")
         lenepisodi = len(episodi)
+        listEpisodi = []
         if len(listLargeEpisode) == 0:
             lentotalepisodi = len(episodi)
         for x in range(start, lenepisodi):
@@ -140,18 +144,31 @@ class AnimeWorld(AnimeWebSite):
                         EC.visibility_of_element_located((By.ID, "alternativeDownloadLink")))
                     new_url_download = self.__findNewUrl()
                     try:
-                        if self._AnimeWebSite__checkUrl(new_url_download, i,self.__getTotalEpisode(lentotalepisodi),episodi[x]):
-                            customPrint("Acquisito l'episodio " + str(i) + " di " + str(lentotalepisodi) + " : " +
-                                        new_url_download.split("filename=")[1])
+                        if self._AnimeWebSite__checkUrl(new_url_download, self._AnimeWebSite__indexanime,self.__getTotalEpisode(lentotalepisodi),episodi[x]):
+                            customPrint("Acquisito l'episodio " + str( self._AnimeWebSite__indexanime) + " di " + str(lentotalepisodi) + " : " + new_url_download)
                             listEpisodi.append(new_url_download)
-                            i += 1
+                            self._AnimeWebSite__indexanime += 1
                             break
                     except IndexError:
-                        raise Exception("AnimeUnity non ha disponibile per il download l'anime")
+                        raise Exception("AnimeWorld non ha disponibile per il download l'anime")
                 except TimeoutException:
                     tentativi += 1
                     continue
         return listEpisodi
+
+    #TODO Da implementare
+    def __findUrlFastMode(self,url :string,start,lentotalepisodi):
+        for e in url.split("_"):
+            try:
+                int(e)
+            except ValueError:
+                pass
+        request = requests.get('http://www.example.com')
+        if request.status_code == 200:
+            print('Web site exists')
+        else:
+            print('Web site does not exist')
+
 
     def downloadAnime(self, link: string, start: int = 0, listEpisodi: array = None):
         from utility import bar_progress
