@@ -1,6 +1,6 @@
 # AnimeDownloader
 
-> If you are an English user please read the [README_EN.md](README_EN.md) file
+> If you are an English user please read the [README.en.md](README.en.md) file
 
 ## Info
 Questo script in Python permette il download automatico di episodi di un anime dai seguenti siti:
