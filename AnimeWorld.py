@@ -23,10 +23,9 @@ class AnimeWorld(AnimeWebSite):
         parent = self.driver.find_element(by=By.CLASS_NAME, value="downloads")
         listLink = parent.find_elements(by=By.CSS_SELECTOR, value="a")
         for link in listLink:
-            href= link.get_attribute('href')
+            href = link.get_attribute('href')
             if ".mp4" in href and not ".php" in href:
                 return href
-
 
     def __largeEpisodeFetch(self, start: int) -> array:
         episode_nav = self.driver.find_elements(by=By.CLASS_NAME, value="rangetitle")
@@ -45,14 +44,17 @@ class AnimeWorld(AnimeWebSite):
             if start != 0:
                 half = int(episodiTab[int(len(episodiTab) / 2)].text.split("-")[0])
                 if start < half:
-                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(0, int(len(episodiTab) / 2), start, episodiTab)
+                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(0, int(len(episodiTab) / 2), start,
+                                                                              episodiTab)
                 elif start > half:
-                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab)), start,
-                                                                 episodiTab)
+                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2),
+                                                                              int(len(episodiTab)), start,
+                                                                              episodiTab)
                 elif start == half:
-                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab) / 2),
-                                                                 start,
-                                                                 episodiTab)
+                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2),
+                                                                              int(len(episodiTab) / 2),
+                                                                              start,
+                                                                              episodiTab)
             return episodiTab
         else:
             return episode_nav
@@ -61,7 +63,7 @@ class AnimeWorld(AnimeWebSite):
         ActionChains(self.driver).move_to_element(e).click().perform()
         while True:
             for e in self.driver.find_elements(by=By.CSS_SELECTOR, value=value):
-                if len(e.text)>0:
+                if len(e.text) > 0:
                     element = e
                     break
             try:
@@ -93,20 +95,22 @@ class AnimeWorld(AnimeWebSite):
             if start != 0:
                 self._AnimeWebSite__indexanime = start
             if len(listLargeEpisode) == 0:
-                listEpisodi+= self.__getEpisodeTab(0, listLargeEpisode, start)
+                listEpisodi += self.__getEpisodeTab(0, listLargeEpisode, start)
             else:
                 listEpisodi += self.__getEpisodeTab(0, listLargeEpisode, start)
-                for episodeTab in range(1, len(listLargeEpisode)):
+                if len(listEpisodi) == 50-(start-1):
+                   for episodeTab in range(1, len(listLargeEpisode)):
                     listEpisodi += self.__getEpisodeTab(episodeTab, listLargeEpisode, 0)
+            return listEpisodi
         else:
             return None
 
     def __checkIsAiring(self):
         for item in self.driver.find_elements(by=By.CSS_SELECTOR, value="dd"):
-            if "In Corso" in item.text:
+            if "In corso" in item.text:
                 self.airing = True
 
-    def __getTotalEpisode(self,lentotalepisodi : int):
+    def __getTotalEpisode(self, lentotalepisodi: int):
         for item in self.driver.find_elements(by=By.CSS_SELECTOR, value="dd"):
             if "??" in item.text:
                 return int(lentotalepisodi)
@@ -121,7 +125,7 @@ class AnimeWorld(AnimeWebSite):
         if len(listLargeEpisode) > 0:
             lentotalepisodi = listLargeEpisode[len(listLargeEpisode) - 1].text.split("-")[1]
             if start != 0:
-                start = start - int(listLargeEpisode[episodeTab].text.replace(" ","").split("-")[0])
+                start = start - int(listLargeEpisode[episodeTab].text.replace(" ", "").split("-")[0])
         if len(listLargeEpisode) != 0:
             self.__ceckActionChain(listLargeEpisode[episodeTab], "span.rangetitle.active")
         servertab = self.driver.find_element(by=By.CSS_SELECTOR, value="div.server.active")
@@ -135,40 +139,60 @@ class AnimeWorld(AnimeWebSite):
             tentativi = 0
             while True:
                 if tentativi > 100:
-                    raise Exception("Animeunity non risponde correttamente")
+                    raise Exception(self.__class__.__name__ + " non risponde correttamente")
                 try:
                     self.__ceckActionChain(episodi[x], "a.active")
-                    self.driver.execute_script(
-                        "try{document.getElementsByTagName(\"iframe\")[0].remove()}catch(err){}")
+                    #self.driver.execute_script("try{document.getElementsByTagName(\"iframe\")[0].remove()}catch(err){}")
                     WebDriverWait(self.driver, 1).until(
                         EC.visibility_of_element_located((By.ID, "alternativeDownloadLink")))
                     new_url_download = self.__findNewUrl()
                     try:
-                        if self._AnimeWebSite__checkUrl(new_url_download, self._AnimeWebSite__indexanime,self.__getTotalEpisode(lentotalepisodi),episodi[x]):
-                            customPrint("Acquisito l'episodio " + str( self._AnimeWebSite__indexanime) + " di " + str(lentotalepisodi) + " : " + new_url_download)
+                        if self._AnimeWebSite__checkUrl(new_url_download, self._AnimeWebSite__indexanime,
+                                                        self.__getTotalEpisode(lentotalepisodi), episodi[x]):
+                            if self._AnimeWebSite__indexanime == start +1:
+                                findLinkFastList = self.__findUrlFastMode(new_url_download, int(lentotalepisodi))
+                                if findLinkFastList is not None and len(findLinkFastList) == (int(lentotalepisodi) - start):
+                                    return findLinkFastList
+                            customPrint("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
+                                lentotalepisodi) + " : " + self.__getEpisodioNameFileFromUrl(new_url_download))
                             listEpisodi.append(new_url_download)
                             self._AnimeWebSite__indexanime += 1
                             break
                     except IndexError:
-                        raise Exception("AnimeWorld non ha disponibile per il download l'anime")
+                        raise Exception(self.__class__.__name__ + " non ha disponibile per il download l'anime")
                 except TimeoutException:
                     tentativi += 1
                     continue
         return listEpisodi
-
-    #TODO Da implementare
-    def __findUrlFastMode(self,url :string,start,lentotalepisodi):
+    def __findUrlFastMode(self, url: string, lentotalepisodi : int):
+        from utility import customPrint
+        episodeList = []
+        indexAnime = self._AnimeWebSite__indexanime
         for e in url.split("_"):
             try:
-                int(e)
+                if int(e) == indexAnime:
+                    startingepg = e
+                break
             except ValueError:
                 pass
-        request = requests.get('http://www.example.com')
-        if request.status_code == 200:
-            print('Web site exists')
-        else:
-            print('Web site does not exist')
-
+        lenstartingepg = len(startingepg)
+        for index in range(int(startingepg), lentotalepisodi+1):
+            episodeNumber = str(index)
+            indexlen = len(episodeNumber)
+            if indexlen != lenstartingepg:
+                for e in range(indexlen, lenstartingepg):
+                    episodeNumber = "0" + episodeNumber
+            url_download = url.replace(startingepg, episodeNumber)
+            request = requests.head(url_download, headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36'})
+            if request.status_code == 200:
+                customPrint("Acquisito l'episodio " + str(indexAnime) + " di " + str(
+                    lentotalepisodi) + " : " + self.__getEpisodioNameFileFromUrl(url_download))
+                episodeList.append(url_download)
+                indexAnime +=1
+            else:
+                customPrint("Impossibile acquisire anime in modalità rapida, provo un altro modo")
+                return None
+        return episodeList
 
     def downloadAnime(self, link: string, start: int = 0, listEpisodi: array = None):
         from utility import bar_progress
@@ -192,16 +216,16 @@ class AnimeWorld(AnimeWebSite):
             file = open(airingurl, 'w+')
             file.write(link)
             file.close()
-        print("Scarico i " + str(len(listEpisodi)) + " episodi/o")
-        i = 1
         incomplete = os.path.join(dir, ".incomplete")
         if os.path.exists(incomplete) == False:
             file = open(incomplete, 'w+')
             file.write(link)
             file.close()
         self.incomplete = True
+        print("Scarico i " + str(len(listEpisodi)) + " episodi/o")
+        i = 1
         for episodio in listEpisodi:
-            splitEp = episodio.split("filename=")[1]
+            splitEp = self.__getEpisodioNameFileFromUrl(episodio)
             print(str(i) + ". Avvio il download di: " + splitEp)
             if splitEp in listAnimeDownloaded:
                 print(splitEp + " già trovato nei file scaricati")
@@ -210,16 +234,16 @@ class AnimeWorld(AnimeWebSite):
                     wget.download(episodio, dir, bar=bar_progress)
                     print("")
                 except Exception:
-                    if not self.__downloadWithUrl2(dir, splitEp, anime_name):
-                        try:
-                            print("")
-                            url = "http://www.dororo-anime.eu/DLL/ANIME/"
-                            self.__downloadWithUrl(dir, splitEp, url, anime_name)
-                        except Exception:
-                            print("")
-                            return False
+                    print("")
+                    return False
 
             i += 1
         if os.path.exists(incomplete) == True:
             os.remove(incomplete)
         return True
+
+    def __getEpisodioNameFileFromUrl(self,url: string):
+        array = url.split("/")
+        for word in array:
+            if word.endswith(".mp4"):
+                return word

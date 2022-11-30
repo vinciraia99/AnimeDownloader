@@ -165,14 +165,14 @@ class AnimeUnity(AnimeWebSite):
             file = open(airingurl, 'w+')
             file.write(link)
             file.close()
-        print("Scarico i " + str(len(listEpisodi)) + " episodi/o")
-        i = 1
         incomplete = os.path.join(dir, ".incomplete")
         if os.path.exists(incomplete) == False:
             file = open(incomplete, 'w+')
             file.write(link)
             file.close()
         self.incomplete = True
+        print("Scarico i " + str(len(listEpisodi)) + " episodi/o")
+        i = 1
         for episodio in listEpisodi:
             splitEp = episodio.split("filename=")[1]
             print(str(i) + ". Avvio il download di: " + splitEp)

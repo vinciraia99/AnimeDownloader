@@ -80,7 +80,7 @@ for dict_url in listUrl:
         anime = getAnimeClass(my_url, driver)
         if anime is not None:
             if isAllAviable(dict_url["name"]):
-                episodeList = anime.getEpisodeList(my_url, dict["episodi"])
+                episodeList = anime.getEpisodeList(my_url, dict["episodi"]+1)
             else:
                 episodeList = anime.getEpisodeList(my_url)
             updated.append(anime.name)
@@ -105,10 +105,3 @@ if len(updated) > 0:
     sendTelegram(text)
 else:
     sendTelegram("Nessun nuovo episodio anime tra quelli in lista")
-'''except Exception as e:
-    print("Programma terminato con un errore!")
-    sendTelegram("Programma terminato con un errore")
-    print(e)
-except KeyboardInterrupt:
-    print()
-    print("Annullo e chiudo il programma...")'''
