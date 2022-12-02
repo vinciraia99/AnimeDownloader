@@ -3,23 +3,20 @@ import traceback
 
 from AnimeWebSite import AnimeWebSite
 from utility import initDriver, getAnimeClass, cleanProgram
-driver = initDriver()
 
 try:
     if len(sys.argv) == 2:
         print(sys.argv[1])
         my_url = sys.argv[1]
-        anime = getAnimeClass(my_url, driver)
+        anime = getAnimeClass(my_url)
         if anime is not None:
-            episodeList = anime.downloadAnime(my_url)
-
-
+            episodeList = anime.downloadAnime()
     else:
         while True:
             my_url = input("Inserisci l'url dell'anime da scaricare: ")
-            anime = getAnimeClass(my_url, driver)
+            anime = getAnimeClass(my_url)
             if anime is not None:
-                episodeList = anime.downloadAnime(my_url)
+                episodeList = anime.downloadAnime()
                 if episodeList is None:
                     print("Url non valido. Riprova")
                 else:
@@ -27,16 +24,15 @@ try:
                     break
             else:
                 print("Url non valido. Riprova")
-    driver.quit()
     print("Fatto!")
 except KeyboardInterrupt:
     try:
-        cleanProgram(driver, anime.incomplete)
+        cleanProgram(anime.incomplete)
     except NameError:
-        cleanProgram(driver, False)
+       pass
 except Exception:
     print(traceback.format_exc())
     try:
-        cleanProgram(driver, anime.incomplete)
+        cleanProgram(anime.incomplete)
     except NameError:
-        cleanProgram(driver, False)
+       pass

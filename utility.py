@@ -19,14 +19,9 @@ def customPrint(text: string):
     print(text)
 
 
-def cleanProgram(driver,incomplete):
-    global e
-    try:
-        print("Chiudo la sessione di Chrome...")
-        driver.quit()
-    except Exception as e:
-        pass
+def cleanProgram(incomplete):
     if incomplete is True:
+        print()
         print("Pulisco i file temporanei...")
         for file in os.listdir(os.getcwd()):
             if os.path.isdir(file):
@@ -52,11 +47,11 @@ def initDriver():
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=setOption())
 
 
-def getAnimeClass(url: string, driver: webdriver):
+def getAnimeClass(url: string):
     if "animeunity" in url:
-        return AnimeUnity(driver)
+        return AnimeUnity(url)
     elif "animeworld" in url:
-        return AnimeWorld(driver)
+        return AnimeWorld(url)
 
 
 def show_progress(block_num, block_size, total_size):
