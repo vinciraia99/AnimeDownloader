@@ -4,21 +4,20 @@ import string
 import urllib
 from urllib import request
 
-import wget
-from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.remote.webelement import WebElement
+
 from AnimeWebSite import AnimeWebSite
 
 
 class AnimeUnity(AnimeWebSite):
     driver = None
 
-    def __init__(self,url : string):
+    def __init__(self, url: string):
         super(AnimeUnity, self).__init__(url)
         self.__latest = 0
         self.plyrControlListIndex = 18
@@ -77,7 +76,7 @@ class AnimeUnity(AnimeWebSite):
 
     def getEpisodeList(self, start: int = 0) -> array:
         from utility import customPrint
-        url = self._AnimeWebSite__fixUrl(self.url,"www.animeunity")
+        url = self._AnimeWebSite__fixUrl(self.url, "www.animeunity")
         if url is not None:
             AnimeUnity.driver.get(url)
             self.name = self.__getAnimeName()
@@ -90,7 +89,7 @@ class AnimeUnity(AnimeWebSite):
             listLargeEpisode = self.__largeEpisodeFetch(start)
             listEpisodi = []
             if start != 0:
-                self._AnimeWebSite__indexanime = start +1
+                self._AnimeWebSite__indexanime = start + 1
             if len(listLargeEpisode) == 0:
                 result = self.__getEpisodeTab(0, listLargeEpisode, start)
             else:
@@ -148,7 +147,7 @@ class AnimeUnity(AnimeWebSite):
                         AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="plyr__control"))
                     try:
                         if self.__checkUrl(new_url_download, self._AnimeWebSite__indexanime,
-                                                        self.__getTotalEpisode(), episodi[x]):
+                                           self.__getTotalEpisode(), episodi[x]):
                             customPrint("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
                                 lentotalepisodi) + " : " +
                                         self.__getEpisodioNameFileFromUrl(new_url_download))
@@ -168,17 +167,17 @@ class AnimeUnity(AnimeWebSite):
     def downloadAnime(self, start: int = 0, listEpisodi: array = None):
         listEpisodi = super().downloadAnime(start, listEpisodi)
         if listEpisodi != True:
-                anime_name = self._AnimeWebSite__replaceNameDir()
-                for episodio in listEpisodi:
-                    dir = self._AnimeWebSite__createOrCheckDowloadedFileDir(anime_name)
-                    if not self.__downloadWithUrl2(dir, episodio["name"], anime_name):
-                        try:
-                            print("")
-                            url = "http://www.dororo-anime.eu/DLL/ANIME/"
-                            self.__downloadWithUrl(dir, episodio["url"], url, anime_name)
-                        except Exception:
-                            print("")
-                            return False
+            anime_name = self._AnimeWebSite__replaceNameDir()
+            for episodio in listEpisodi:
+                dir = self._AnimeWebSite__createOrCheckDowloadedFileDir(anime_name)
+                if not self.__downloadWithUrl2(dir, episodio["name"], anime_name):
+                    try:
+                        print("")
+                        url = "http://www.dororo-anime.eu/DLL/ANIME/"
+                        self.__downloadWithUrl(dir, episodio["url"], url, anime_name)
+                    except Exception:
+                        print("")
+                        return False
         self._AnimeWebSite__removeIncompleteFile(self._AnimeWebSite__incomplete)
 
     def __downloadWithUrl2(self, dir, splitEp, anime_name):
@@ -230,21 +229,21 @@ class AnimeUnity(AnimeWebSite):
                 return False
         return False
 
-    def __checkUrl(self, link: string, index: int,lenepisodi : int, episodio : WebElement) -> bool:
+    def __checkUrl(self, link: string, index: int, lenepisodi: int, episodio: WebElement) -> bool:
         flag = False
         if index > 10:
             flag = True
         for e in link.split("_"):
             try:
                 if int(e) > lenepisodi:
-                    index = (int(index) + lenepisodi)-1
+                    index = (int(index) + lenepisodi) - 1
                 elif int(e) == lenepisodi and index == 1:
                     index = lenepisodi
                 if index == int(e):
                     return True
                 elif flag and "0" + str(index) == e:
                     return True
-                elif len(e.split("-"))>0 and episodio.text.replace(" ","") == e:
+                elif len(e.split("-")) > 0 and episodio.text.replace(" ", "") == e:
                     self.__indexanime = int(episodio.text.split("-")[1])
                     return True
             except ValueError:

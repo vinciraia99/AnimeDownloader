@@ -1,14 +1,10 @@
 import array
-import os
 import string
 
 import requests
-import wget
 from bs4 import BeautifulSoup
 
-from AnimeUnity import AnimeUnity
 from AnimeWebSite import AnimeWebSite
-import http.client
 
 
 class AnimeWorld(AnimeWebSite):
@@ -40,7 +36,7 @@ class AnimeWorld(AnimeWebSite):
                 parent = server
                 break
         episodiTab = parent.findAll("li", class_="episode")
-        return episodiTab[start-1:len(episodiTab)]
+        return episodiTab[start - 1:len(episodiTab)]
 
     def __getAnimeName(self) -> string:
         title = self.__soup.find(id="anime-title")
@@ -97,6 +93,10 @@ class AnimeWorld(AnimeWebSite):
         from utility import customPrint
         episodeList = []
         indexAnime = self._AnimeWebSite__indexanime
+        if self._AnimeWebSite__indexanime == 1:
+            indexAnimeTotal = 0
+        else:
+            indexAnimeTotal = self._AnimeWebSite__indexanime
         for e in url.split("_"):
             try:
                 if int(e) == indexAnime:
@@ -116,7 +116,7 @@ class AnimeWorld(AnimeWebSite):
                 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36'})
             if request.status_code == 200:
                 customPrint("Acquisito l'episodio " + str(indexAnime) + " di " + str(
-                    lentotalepisodi + self._AnimeWebSite__indexanime) + " : " + self.__getEpisodioNameFileFromUrl(url_download))
+                    lentotalepisodi + indexAnimeTotal) + " : " + self.__getEpisodioNameFileFromUrl(url_download))
                 episodeList.append(url_download)
                 indexAnime += 1
             else:
@@ -130,7 +130,7 @@ class AnimeWorld(AnimeWebSite):
             if word.endswith(".mp4"):
                 return word
 
-    def downloadAnime(self,start: int = 1, listEpisodi: array = None):
+    def downloadAnime(self, start: int = 1, listEpisodi: array = None):
         listEpisodi = super().downloadAnime(start, listEpisodi)
         if listEpisodi != True:
             raise Exception("Download fallito, potrebbe essere un prpoblema di rete")

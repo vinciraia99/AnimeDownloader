@@ -1,11 +1,6 @@
 import traceback
 import warnings
-from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
+
 from utility import *
 
 warnings.filterwarnings("ignore")
@@ -108,11 +103,10 @@ except KeyboardInterrupt:
     try:
         cleanProgram(anime.incomplete)
     except NameError:
-       pass
+        pass
 except Exception:
     print(traceback.format_exc())
     try:
         cleanProgram(anime.incomplete)
     except NameError:
-       pass
-
+        pass
