@@ -32,7 +32,7 @@ python anime.py http://example.com
 
 ## Future implementazioni
 * Supporto ad altri siti
-* Supporto per più download contemporanemante
+* Supporto per più download contemporaneamente
 * Supporto a ricevere in input un file con vari url di anime da scaricare
 * Ricerca di anime all'interno dello script
 * Possiblità di customizzare la cartella di output
