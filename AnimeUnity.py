@@ -110,13 +110,14 @@ class AnimeUnity(AnimeWebSite):
             return listDictEpisodi
         return result
 
-    def __getTotalEpisode(self):
+    def __getTotalEpisode(self,lentotalepisodi :int):
         for item in AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="info-item"):
             try:
                 e = int(item.text.replace("Episodi\n", ""))
                 return e
             except ValueError:
                 pass
+        return lentotalepisodi
 
     def __getEpisodeTab(self, episodeTab, listLargeEpisode, start) -> array:
         from utility import customPrint
@@ -147,7 +148,7 @@ class AnimeUnity(AnimeWebSite):
                         AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="plyr__control"))
                     try:
                         if self.__checkUrl(new_url_download, self._AnimeWebSite__indexanime,
-                                           self.__getTotalEpisode(), episodi[x]):
+                                           self.__getTotalEpisode(int(lentotalepisodi)), episodi[x]):
                             customPrint("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
                                 lentotalepisodi) + " : " +
                                         self.__getEpisodioNameFileFromUrl(new_url_download))
