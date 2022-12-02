@@ -26,9 +26,10 @@ python anime.py http://example.com
 
 1. Download [Chrome](https://www.google.com/chrome/)
 2. Install [Python3](https://www.python.org/downloads/)
-3. Install requirements.txt file included in the repo: `pip install -r requirements.txt`.
-4. Run `python anime.py` to start using the script
-5. To update current anime you can run `python updater.py`.
+3. Download the [repo](https://github.com/vinciraia99/AnimeDownloader/archive/refs/heads/main.zip) or alternatively run the command `git clone https://github.com/vinciraia99/AnimeDownloader.git
+4. Install requirements.txt file included in the repo: `pip install -r requirements.txt`.
+5. Run `python anime.py` to start using the script
+6. To update current anime you can run `python updater.py`.
 
 ## Future implementations
 * Support for other sites
