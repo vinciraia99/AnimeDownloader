@@ -19,7 +19,7 @@ class AnimeWebSite:
         if website in link:
             try:
                 split = link.split("/")
-                link_filter = split[0] + "/"
+                link_filter = split[0]
                 for i in range(1, 5):
                     link_filter += "/" + split[i]
                 return link_filter

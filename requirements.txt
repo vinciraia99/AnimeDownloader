@@ -3,3 +3,5 @@ wget
 webdriver-manager
 packaging
 progressbar
+BeautifulSoup4
+urllib3
