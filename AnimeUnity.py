@@ -90,7 +90,7 @@ class AnimeUnity(AnimeWebSite):
             listLargeEpisode = self.__largeEpisodeFetch(start)
             listEpisodi = []
             if start != 0:
-                self._AnimeWebSite__indexanime = start
+                self._AnimeWebSite__indexanime = start +1
             if len(listLargeEpisode) == 0:
                 result = self.__getEpisodeTab(0, listLargeEpisode, start)
             else:
