@@ -68,8 +68,8 @@ class AnimeWorld1(AnimeWebSite):
                 soap= self.__request(episodiourl)
                 link = self.__findNewUrl(soap)
                 if first:
-                    findLinkFastList = self.__findUrlFastMode(link, len(listEpisodi))
-                    if findLinkFastList is not None and len(findLinkFastList) == (len(listEpisodi) - start):
+                    findLinkFastList = self.__findUrlFastMode(link, len(listEpisodiLink))
+                    if findLinkFastList is not None and len(findLinkFastList) == (len(listEpisodiLink) - start):
                         return findLinkFastList
                     first = False
                 customPrint("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + len(listEpisodi) + " : " + self.__getEpisodioNameFileFromUrl(link))
