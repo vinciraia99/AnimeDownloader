@@ -69,37 +69,50 @@ for dir in listDir:
     file.close()
 animeindex = 1
 status = True
-for dict_url in listUrl:
-    try:
-        print("== Verifico se ci sono nuovi episodi per l'anime " + str(animeindex) + " di " + str(
-            len(listUrl)) + " : " +
-              dict_url["name"] + " ==")
-        animeindex += 1
-        my_url = dict_url["url"]
-        anime = getAnimeClass(my_url)
-        if anime is not None:
-            if isAllAviable(dict_url["name"]):
-                episodeList = anime.getEpisodeList(dict["episodi"])
+try:
+    for dict_url in listUrl:
+        try:
+            print("== Verifico se ci sono nuovi episodi per l'anime " + str(animeindex) + " di " + str(
+                len(listUrl)) + " : " +
+                  dict_url["name"] + " ==")
+            animeindex += 1
+            my_url = dict_url["url"]
+            anime = getAnimeClass(my_url)
+            if anime is not None:
+                if isAllAviable(dict_url["name"]):
+                    episodeList = anime.getEpisodeList(dict["episodi"])
+                else:
+                    episodeList = anime.getEpisodeList()
+                updated.append(anime.name)
+            if len(episodeList) > 0:
+                anime.downloadAnime(0, episodeList)
             else:
-                episodeList = anime.getEpisodeList()
-            updated.append(anime.name)
-        if len(episodeList) > 0:
-            anime.downloadAnime(0, episodeList)
-        else:
-            print("Non ci sono nuovi episodi")
-        if anime.airing == False and deleteAiring(dict["name"]):
-            print("L'anime " + anime.name + " non è più in corso")
-    except IndexError:
-        print(
-            "L'anime " + dict_url[
-                "name"] + " ha generato un errore, l'errore potrebbe essere causato dal nome modificato manualmente di un anime, per favore ripristina il nome e rilancia lo script ")
-        print(traceback.format_exc())
-print("Chiudo la sessione di Chrome...")
-status = False
-if len(updated) > 0:
-    text = "Ho aggiornato i seguenti anime:"
-    for e in updated:
-        text += "\n" + e
-    sendTelegram(text)
-else:
-    sendTelegram("Nessun nuovo episodio anime tra quelli in lista")
+                print("Non ci sono nuovi episodi")
+            if anime.airing == False and deleteAiring(dict["name"]):
+                print("L'anime " + anime.name + " non è più in corso")
+        except IndexError:
+            print(
+                "L'anime " + dict_url[
+                    "name"] + " ha generato un errore, l'errore potrebbe essere causato dal nome modificato manualmente di un anime, per favore ripristina il nome e rilancia lo script ")
+            print(traceback.format_exc())
+    print("Chiudo la sessione di Chrome...")
+    status = False
+    if len(updated) > 0:
+        text = "Ho aggiornato i seguenti anime:"
+        for e in updated:
+            text += "\n" + e
+        sendTelegram(text)
+    else:
+        sendTelegram("Nessun nuovo episodio anime tra quelli in lista")
+except KeyboardInterrupt:
+    try:
+        cleanProgram(anime.incomplete)
+    except NameError:
+       pass
+except Exception:
+    print(traceback.format_exc())
+    try:
+        cleanProgram(anime.incomplete)
+    except NameError:
+       pass
+

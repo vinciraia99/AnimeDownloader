@@ -21,6 +21,7 @@ def customPrint(text: string):
 
 def cleanProgram(incomplete):
     if incomplete is True:
+        print()
         print("Pulisco i file temporanei...")
         for file in os.listdir(os.getcwd()):
             if os.path.isdir(file):
