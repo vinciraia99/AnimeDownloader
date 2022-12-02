@@ -49,11 +49,14 @@ driver = None
 for path in os.listdir(os.getcwd()):
     if os.path.isdir(path):
         for subpath in os.listdir(os.path.join(os.getcwd(), path)):
-            if subpath == ".url" or subpath == ".incomplete" and subpath == "url":
+            if subpath == ".url" or subpath == ".incomplete" or subpath == "url":
                 listDir.append(path)
 
 for dir in listDir:
-    file = open(os.path.join(os.getcwd(), dir, ".url"), "r")
+    if os.path.isdir(os.path.join(os.getcwd(), dir, ".url")):
+        file = open(os.path.join(os.getcwd(), dir, ".url"), "r")
+    else:
+        file = open(os.path.join(os.getcwd(), dir, ".incomplete"), "r")
     dict = {
         "name": dir,
         "url": file.read(),
