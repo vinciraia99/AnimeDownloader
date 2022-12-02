@@ -1,11 +1,6 @@
 import traceback
 import warnings
-from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
+
 from utility import *
 
 warnings.filterwarnings("ignore")
@@ -54,11 +49,14 @@ driver = None
 for path in os.listdir(os.getcwd()):
     if os.path.isdir(path):
         for subpath in os.listdir(os.path.join(os.getcwd(), path)):
-            if subpath == ".url" or subpath == ".incomplete" and subpath == "url":
+            if subpath == ".url" or subpath == ".incomplete" or subpath == "url":
                 listDir.append(path)
 
 for dir in listDir:
-    file = open(os.path.join(os.getcwd(), dir, ".url"), "r")
+    if os.path.isdir(os.path.join(os.getcwd(), dir, ".url")):
+        file = open(os.path.join(os.getcwd(), dir, ".url"), "r")
+    else:
+        file = open(os.path.join(os.getcwd(), dir, ".incomplete"), "r")
     dict = {
         "name": dir,
         "url": file.read(),
@@ -108,11 +106,10 @@ except KeyboardInterrupt:
     try:
         cleanProgram(anime.incomplete)
     except NameError:
-       pass
+        pass
 except Exception:
     print(traceback.format_exc())
     try:
         cleanProgram(anime.incomplete)
     except NameError:
-       pass
-
+        pass

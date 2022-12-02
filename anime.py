@@ -1,8 +1,7 @@
 import sys
 import traceback
 
-from AnimeWebSite import AnimeWebSite
-from utility import initDriver, getAnimeClass, cleanProgram
+from utility import getAnimeClass, cleanProgram
 
 try:
     if len(sys.argv) == 2:
@@ -29,10 +28,10 @@ except KeyboardInterrupt:
     try:
         cleanProgram(anime.incomplete)
     except NameError:
-       pass
+        pass
 except Exception:
     print(traceback.format_exc())
     try:
         cleanProgram(anime.incomplete)
     except NameError:
-       pass
+        pass

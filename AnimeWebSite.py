@@ -3,13 +3,11 @@ import os
 import string
 
 import wget
-from selenium import webdriver
-from selenium.webdriver.remote.webelement import WebElement
 
 
 class AnimeWebSite:
 
-    def __init__(self,url):
+    def __init__(self, url):
         self.url = url
         self.incomplete = False
         self.airing = False
@@ -51,7 +49,7 @@ class AnimeWebSite:
                     wget.download(episodio["url"], dir, bar=bar_progress)
                     print("")
                 except Exception:
-                    return listEpisodi[i-1:len(listEpisodi)]
+                    return listEpisodi[i - 1:len(listEpisodi)]
             i += 1
         self.__removeIncompleteFile(self.__incomplete)
         return True
