@@ -18,7 +18,8 @@ from AnimeWebSite import AnimeWebSite
 class AnimeUnity(AnimeWebSite):
 
     def __init__(self, driver: webdriver):
-        super(AnimeUnity, self).__init__(driver)
+        from utility import initDriver
+        self.driver = initDriver()
         self.__latest=0
 
     def __largeEpisodeFetch(self, start: int) -> array:

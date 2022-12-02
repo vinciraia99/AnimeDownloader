@@ -7,11 +7,10 @@ from selenium.webdriver.remote.webelement import WebElement
 
 class AnimeWebSite:
 
-    def __init__(self, driver: webdriver):
+    def __init__(self):
         self.incomplete = False
         self.airing = False
         self.name = None
-        self.driver = driver
         self.plyrControlListIndex = 18
         self.__indexanime = 1
 

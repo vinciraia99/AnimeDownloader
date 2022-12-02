@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from AnimeUnity import AnimeUnity
-from AnimeWorld1 import AnimeWorld1
+from AnimeWorld import AnimeWorld
 
 pbar = None
 
@@ -49,15 +49,14 @@ def setOption():
 
 
 def initDriver():
-    return
-    #return webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=setOption())
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=setOption())
 
 
-def getAnimeClass(url: string, driver: webdriver):
+def getAnimeClass(url: string):
     if "animeunity" in url:
-        return AnimeUnity(driver)
+        return AnimeUnity()
     elif "animeworld" in url:
-        return AnimeWorld1(driver)
+        return AnimeWorld()
 
 
 def show_progress(block_num, block_size, total_size):
