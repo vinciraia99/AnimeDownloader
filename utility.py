@@ -48,9 +48,9 @@ def initDriver():
 
 def getAnimeClass(url: string):
     if "animeunity" in url:
-        return AnimeUnity()
+        return AnimeUnity(url)
     elif "animeworld" in url:
-        return AnimeWorld()
+        return AnimeWorld(url)
 
 
 def show_progress(block_num, block_size, total_size):

@@ -68,7 +68,6 @@ for dir in listDir:
     listUrl.append(dict)
     file.close()
 animeindex = 1
-driver = initDriver()
 status = True
 for dict_url in listUrl:
     try:
@@ -77,15 +76,15 @@ for dict_url in listUrl:
               dict_url["name"] + " ==")
         animeindex += 1
         my_url = dict_url["url"]
-        anime = getAnimeClass(my_url, driver)
+        anime = getAnimeClass(my_url)
         if anime is not None:
             if isAllAviable(dict_url["name"]):
-                episodeList = anime.getEpisodeList(my_url, dict["episodi"]+1)
+                episodeList = anime.getEpisodeList(dict["episodi"])
             else:
-                episodeList = anime.getEpisodeList(my_url)
+                episodeList = anime.getEpisodeList()
             updated.append(anime.name)
         if len(episodeList) > 0:
-            anime.downloadAnime(my_url, 0, episodeList)
+            anime.downloadAnime(0, episodeList)
         else:
             print("Non ci sono nuovi episodi")
         if anime.airing == False and deleteAiring(dict["name"]):
@@ -96,7 +95,6 @@ for dict_url in listUrl:
                 "name"] + " ha generato un errore, l'errore potrebbe essere causato dal nome modificato manualmente di un anime, per favore ripristina il nome e rilancia lo script ")
         print(traceback.format_exc())
 print("Chiudo la sessione di Chrome...")
-driver.quit()
 status = False
 if len(updated) > 0:
     text = "Ho aggiornato i seguenti anime:"

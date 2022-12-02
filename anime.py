@@ -10,13 +10,13 @@ try:
         my_url = sys.argv[1]
         anime = getAnimeClass(my_url)
         if anime is not None:
-            episodeList = anime.downloadAnime(my_url)
+            episodeList = anime.downloadAnime()
     else:
         while True:
             my_url = input("Inserisci l'url dell'anime da scaricare: ")
             anime = getAnimeClass(my_url)
             if anime is not None:
-                episodeList = anime.downloadAnime(my_url)
+                episodeList = anime.downloadAnime()
                 if episodeList is None:
                     print("Url non valido. Riprova")
                 else:
