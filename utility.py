@@ -44,7 +44,7 @@ def setOption():
 
 
 def initDriver():
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=setOption())
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=setOption())
 
 
 def getAnimeClass(url: string):
