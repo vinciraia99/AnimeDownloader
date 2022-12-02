@@ -17,25 +17,27 @@ from AnimeWebSite import AnimeWebSite
 
 class AnimeUnity(AnimeWebSite):
 
-    def __init__(self, driver: webdriver):
-        from utility import initDriver
-        self.driver = initDriver()
-        self.__latest=0
+    def __init__(self):
+        super(AnimeUnity, self).__init__()
+        self.__latest = 0
 
     def __largeEpisodeFetch(self, start: int) -> array:
         episode_nav = self.driver.find_elements(by=By.ID, value="episode-nav")
-        if len(episode_nav) >0 :
+        if len(episode_nav) > 0:
             episodiTab = self.driver.find_elements(by=By.CLASS_NAME, value="btn-episode-nav")
             if start != 0:
                 half = int(episodiTab[int(len(episodiTab) / 2)].text.split("-")[0])
                 if start < half:
-                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(0, int(len(episodiTab) / 2), start, episodiTab)
+                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(0, int(len(episodiTab) / 2), start,
+                                                                              episodiTab)
                 elif start > half:
-                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab)), start,
-                                                                episodiTab)
+                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2),
+                                                                              int(len(episodiTab)), start,
+                                                                              episodiTab)
                 elif start == half:
-                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2), int(len(episodiTab) / 2), start,
-                                                                episodiTab)
+                    return self._AnimeWebSite__rangeEpisodeFindFromStartIndex(int(len(episodiTab) / 2),
+                                                                              int(len(episodiTab) / 2), start,
+                                                                              episodiTab)
             return episodiTab
         else:
             return episode_nav
@@ -70,7 +72,9 @@ class AnimeUnity(AnimeWebSite):
 
     def getEpisodeList(self, link: string, start: int = 0) -> array:
         from utility import customPrint
-        url = self._AnimeWebSite__fixUrl(link,"www.animeunity")
+        from utility import initDriver
+        self.driver = initDriver()
+        url = self._AnimeWebSite__fixUrl(link, "www.animeunity")
         if url is not None:
             self.driver.get(url)
             self.name = self.__getAnimeName()
@@ -85,23 +89,24 @@ class AnimeUnity(AnimeWebSite):
             if start != 0:
                 self._AnimeWebSite__indexanime = start
             if len(listLargeEpisode) == 0:
-                return self.__getEpisodeTab(0, listLargeEpisode, start)
+                result = self.__getEpisodeTab(0, listLargeEpisode, start)
             else:
                 listEpisodi += self.__getEpisodeTab(0, listLargeEpisode, start)
                 for episodeTab in range(1, len(listLargeEpisode)):
                     listEpisodi += self.__getEpisodeTab(episodeTab, listLargeEpisode, 0)
-                return listEpisodi
+                result = listEpisodi
         else:
-            return None
+            result = None
+        self.driver.close()
+        return result
 
     def __getTotalEpisode(self):
         for item in self.driver.find_elements(by=By.CLASS_NAME, value="info-item"):
             try:
-                e = int(item.text.replace("Episodi\n",""))
+                e = int(item.text.replace("Episodi\n", ""))
                 return e
             except ValueError:
                 pass
-
 
     def __getEpisodeTab(self, episodeTab, listLargeEpisode, start) -> array:
         from utility import customPrint
@@ -131,8 +136,10 @@ class AnimeUnity(AnimeWebSite):
                     new_url_download = self.__findNewUrl(
                         self.driver.find_elements(by=By.CLASS_NAME, value="plyr__control"))
                     try:
-                        if self._AnimeWebSite__checkUrl(new_url_download,  self._AnimeWebSite__indexanime,self.__getTotalEpisode(),episodi[x]):
-                            customPrint("Acquisito l'episodio " + str( self._AnimeWebSite__indexanime) + " di " + str(lentotalepisodi) + " : " +
+                        if self._AnimeWebSite__checkUrl(new_url_download, self._AnimeWebSite__indexanime,
+                                                        self.__getTotalEpisode(), episodi[x]):
+                            customPrint("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
+                                lentotalepisodi) + " : " +
                                         new_url_download.split("filename=")[1])
                             listEpisodi.append(new_url_download)
                             self._AnimeWebSite__indexanime += 1
@@ -144,7 +151,7 @@ class AnimeUnity(AnimeWebSite):
                     continue
         return listEpisodi
 
-    def downloadAnime(self,link: string, start: int = 0, listEpisodi: array = None):
+    def downloadAnime(self, link: string, start: int = 0, listEpisodi: array = None):
         from utility import bar_progress
         if listEpisodi is None and link is not None:
             listEpisodi = self.getEpisodeList(link, start)
@@ -152,7 +159,7 @@ class AnimeUnity(AnimeWebSite):
             return None
         listAnimeDownloaded = []
         anime_name = self.name.replace(":", "").replace("\\", "").replace("/", "").replace(":", "").replace("*",
-                                                                                                                  "").replace(
+                                                                                                            "").replace(
             "?", "").replace("”", "").replace("<", "").replace(">", "").replace("|", "")
         dir = os.path.join(os.getcwd(), anime_name)
         if not os.path.exists(dir):

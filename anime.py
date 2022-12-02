@@ -27,12 +27,12 @@ try:
     print("Fatto!")
 except KeyboardInterrupt:
     try:
-        cleanProgram(driver, anime.incomplete)
+        cleanProgram(anime.incomplete)
     except NameError:
-        cleanProgram(driver, False)
+       pass
 except Exception:
     print(traceback.format_exc())
     try:
-        cleanProgram(driver, anime.incomplete)
+        cleanProgram(anime.incomplete)
     except NameError:
-        cleanProgram(driver, False)
+       pass

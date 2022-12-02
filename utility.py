@@ -19,13 +19,7 @@ def customPrint(text: string):
     print(text)
 
 
-def cleanProgram(driver,incomplete):
-    global e
-    try:
-        print("Chiudo la sessione di Chrome...")
-        driver.quit()
-    except Exception as e:
-        pass
+def cleanProgram(incomplete):
     if incomplete is True:
         print("Pulisco i file temporanei...")
         for file in os.listdir(os.getcwd()):
