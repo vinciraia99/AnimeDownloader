@@ -29,7 +29,7 @@ class AnimeWebSite:
         else:
             return None
 
-    def downloadAnime(self, start: int = 1, listEpisodi: array = None):
+    def downloadAnime(self, start, listEpisodi: array = None):
         from utility import bar_progress
         if listEpisodi is None:
             listEpisodi = self.getEpisodeList(start)
