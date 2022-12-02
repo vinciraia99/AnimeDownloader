@@ -130,7 +130,7 @@ class AnimeWorld(AnimeWebSite):
             if word.endswith(".mp4"):
                 return word
 
-    def downloadAnime(self,start: int = 0, listEpisodi: array = None):
+    def downloadAnime(self,start: int = 1, listEpisodi: array = None):
         listEpisodi = super().downloadAnime(start, listEpisodi)
         if listEpisodi != True:
             raise Exception("Download fallito, potrebbe essere un prpoblema di rete")
