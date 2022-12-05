@@ -44,13 +44,12 @@ status = False
 listDir = []
 listUrl = []
 updated = []
-driver = None
-# try:
 for path in os.listdir(os.getcwd()):
     if os.path.isdir(path):
         for subpath in os.listdir(os.path.join(os.getcwd(), path)):
             if subpath == ".url" or subpath == ".incomplete" or subpath == "url":
-                listDir.append(path)
+                if subpath not in listDir:
+                    listDir.append(path)
 
 for dir in listDir:
     if os.path.isdir(os.path.join(os.getcwd(), dir, ".url")):
