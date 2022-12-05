@@ -99,9 +99,9 @@ try:
         text = "Ho aggiornato i seguenti anime:"
         for e in updated:
             text += "\n" + e
-        sendTelegram(text)
+        customPrint(text)
     else:
-        sendTelegram("Nessun nuovo episodio anime tra quelli in lista")
+        customPrint("Nessun nuovo episodio anime tra quelli in lista")
 except KeyboardInterrupt:
     try:
         cleanProgram(anime.incomplete)
