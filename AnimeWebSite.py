@@ -1,8 +1,8 @@
 import array
 import os
 import string
-
-import wget
+import urllib
+from urllib import request
 
 
 class AnimeWebSite:
@@ -28,7 +28,7 @@ class AnimeWebSite:
             return None
 
     def downloadAnime(self, start, listEpisodi: array = None):
-        from utility import bar_progress
+        from utility import show_progress
         if listEpisodi is None:
             listEpisodi = self.getEpisodeList(start)
         listAnimeDownloaded = []
@@ -46,9 +46,9 @@ class AnimeWebSite:
                 print(splitEp + " già trovato nei file scaricati")
             else:
                 try:
-                    wget.download(episodio["url"], dir, bar=bar_progress)
-                    print("")
-                except Exception:
+                    request.urlretrieve(episodio["url"], os.path.join(dir, splitEp + ".tmp"), show_progress)
+                    os.rename(os.path.join(dir, splitEp + ".tmp"), os.path.join(dir, splitEp))
+                except (urllib.error.HTTPError, urllib.error.URLError):
                     return listEpisodi[i - 1:len(listEpisodi)]
             i += 1
         self.__removeIncompleteFile(self.__incomplete)

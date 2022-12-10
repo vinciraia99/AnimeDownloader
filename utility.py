@@ -1,6 +1,5 @@
 import os
 import string
-import sys
 
 import progressbar
 import requests
@@ -17,6 +16,7 @@ pbar = None
 
 def customPrint(text: string):
     print(text)
+    sendTelegram(text)
 
 
 def cleanProgram(incomplete):
@@ -71,21 +71,10 @@ def show_progress(block_num, block_size, total_size):
 percentuale = 0
 
 
-def bar_progress(current, total, width=80):
-    global percentuale
-    attuale = int(current / total * 100)
-    if percentuale != attuale:
-        progress_message = "Download in corso: %d%% [%0.2f / %0.2f] MB" % (
-            attuale, current / 1048576, total / 1048576)
-        sys.stdout.write("\r" + progress_message)
-        sys.stdout.flush()
-        percentuale = attuale
-
-
 def sendTelegram(msg: string):
     if os.path.exists(os.path.join(os.getcwd(), "telegram.setting")):
         file = open(os.path.join(os.getcwd(), "telegram.setting"), 'r')
         TOKEN = file.readline()
         CHAT = file.readline()
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT}&text={msg}"
-    requests.get(url)
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT}&text={msg}"
+        requests.get(url)

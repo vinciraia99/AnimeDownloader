@@ -107,7 +107,8 @@ except KeyboardInterrupt:
     except NameError:
         pass
 except Exception:
-    print(traceback.format_exc())
+    customPrint("Eccezione trovata")
+    customPrint(traceback.format_exc())
     try:
         cleanProgram(anime.incomplete)
     except NameError:
