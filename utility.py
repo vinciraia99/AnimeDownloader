@@ -3,6 +3,7 @@ import string
 
 import progressbar
 import requests
+from progressbar import DataSize, FileTransferSpeed, Bar, Percentage
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -58,10 +59,11 @@ def getAnimeClass(url: string):
 def progressBar(block_num, block_size, total_size):
     global pbar
     if pbar is None:
-        widgets = ['Download in corso: ', progressbar.Percentage(), ' ',
-                   progressbar.Bar(), ' ', progressbar.ETA(), ' ',
-                   progressbar.FileTransferSpeed()]
-        pbar = progressbar.ProgressBar(maxval=total_size,widgets=widgets)
+        widgets = ['Download in corso:', Percentage(), ' ',
+                   Bar(marker='#'), ' ',
+                   FileTransferSpeed(), ' ', DataSize(), "/",
+                   DataSize(variable="max_value"), ' ', progressbar.ETA(format='ETA:%(eta)8s')]
+        pbar = progressbar.ProgressBar(maxval=total_size, widgets=widgets)
         pbar.start()
 
     downloaded = block_num * block_size
@@ -78,7 +80,9 @@ percentuale = 0
 def sendTelegram(msg: string):
     if os.path.exists(os.path.join(os.getcwd(), "telegram.setting")):
         file = open(os.path.join(os.getcwd(), "telegram.setting"), 'r')
-        TOKEN = file.readline()
-        CHAT = file.readline()
+        line = file.readline()
+        TOKEN = line.replace('\n', '')
+        line = file.readline()
+        CHAT = line.replace('\n', '')
         url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT}&text={msg}"
         requests.get(url)
