@@ -39,23 +39,35 @@ def deleteAiring(dirname):
     return False
 
 
+def readFileUrl():
+    file = ""
+    if os.path.isfile(os.path.join(os.getcwd(), dir, ".url")):
+        file = open(os.path.join(os.getcwd(), dir, ".url"), "r")
+    elif os.path.isfile(os.path.join(os.getcwd(), dir, ".incomplete")):
+        file = open(os.path.join(os.getcwd(), dir, ".incomplete"), "r")
+    elif os.path.isfile(os.path.join(os.getcwd(), dir, "url")):
+        file = open(os.path.join(os.getcwd(), dir, "url"), "r")
+    return file
+
+
+def findFileUrl():
+    listDir = []
+    for path in os.listdir(os.getcwd()):
+        if os.path.isdir(path):
+            for subpath in os.listdir(os.path.join(os.getcwd(), path)):
+                if subpath == ".url" or subpath == ".incomplete" or subpath == "url":
+                    if subpath not in listDir:
+                        listDir.append(path)
+    return listDir
+
+
 airing = False
 status = False
-listDir = []
+listDir = findFileUrl()
 listUrl = []
 updated = []
-for path in os.listdir(os.getcwd()):
-    if os.path.isdir(path):
-        for subpath in os.listdir(os.path.join(os.getcwd(), path)):
-            if subpath == ".url" or subpath == ".incomplete" or subpath == "url":
-                if subpath not in listDir:
-                    listDir.append(path)
-
 for dir in listDir:
-    if os.path.isdir(os.path.join(os.getcwd(), dir, ".url")):
-        file = open(os.path.join(os.getcwd(), dir, ".url"), "r")
-    else:
-        file = open(os.path.join(os.getcwd(), dir, ".incomplete"), "r")
+    file = readFileUrl()
     dict = {
         "name": dir,
         "url": file.read(),
