@@ -33,8 +33,8 @@ def deleteAiring(dirname):
     path = os.path.join(os.getcwd(), dirname)
     if os.path.isdir(path):
         for file in os.listdir(path):
-            if file == ".url":
-                os.remove(file)
+            if file == ".url" or file == "url":
+                os.remove(os.path.join(path, file))
                 return True
     return False
 
