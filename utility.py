@@ -1,9 +1,9 @@
 import os
 import string
-import sys
 
 import progressbar
 import requests
+from progressbar import DataSize, FileTransferSpeed, Bar, Percentage
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -17,19 +17,21 @@ pbar = None
 
 def customPrint(text: string):
     print(text)
+    sendTelegram(text)
 
 
-def cleanProgram(incomplete):
-    if incomplete is True:
-        print()
-        print("Pulisco i file temporanei...")
-        for file in os.listdir(os.getcwd()):
-            if os.path.isdir(file):
-                for subpath in os.listdir(os.path.join(os.getcwd(), file)):
-                    if subpath.endswith(".tmp"):
-                        os.remove(os.path.join(os.getcwd(), file, subpath))
-            if file.endswith(".tmp"):
-                os.remove(file)
+def cleanProgram(anime):
+    if anime is not None:
+        if anime.incomplete is True:
+            print()
+            print("Pulisco i file temporanei...")
+            for file in os.listdir(os.getcwd()):
+                if os.path.isdir(file):
+                    for subpath in os.listdir(os.path.join(os.getcwd(), file)):
+                        if subpath.endswith(".tmp"):
+                            os.remove(os.path.join(os.getcwd(), file, subpath))
+                if file.endswith(".tmp"):
+                    os.remove(file)
     print("Fatto!")
     exit(0)
 
@@ -54,10 +56,14 @@ def getAnimeClass(url: string):
         return AnimeWorld(url)
 
 
-def show_progress(block_num, block_size, total_size):
+def progressBar(block_num, block_size, total_size):
     global pbar
     if pbar is None:
-        pbar = progressbar.ProgressBar(maxval=total_size)
+        widgets = ['Download in corso:', Percentage(), ' ',
+                   Bar(marker='#'), ' ',
+                   FileTransferSpeed(), ' ', DataSize(), "/",
+                   DataSize(variable="max_value"), ' ', progressbar.ETA(format='ETA:%(eta)8s')]
+        pbar = progressbar.ProgressBar(maxval=total_size, widgets=widgets)
         pbar.start()
 
     downloaded = block_num * block_size
@@ -71,21 +77,12 @@ def show_progress(block_num, block_size, total_size):
 percentuale = 0
 
 
-def bar_progress(current, total, width=80):
-    global percentuale
-    attuale = int(current / total * 100)
-    if percentuale != attuale:
-        progress_message = "Download in corso: %d%% [%0.2f / %0.2f] MB" % (
-            attuale, current / 1048576, total / 1048576)
-        sys.stdout.write("\r" + progress_message)
-        sys.stdout.flush()
-        percentuale = attuale
-
-
 def sendTelegram(msg: string):
     if os.path.exists(os.path.join(os.getcwd(), "telegram.setting")):
         file = open(os.path.join(os.getcwd(), "telegram.setting"), 'r')
-        TOKEN = file.readline()
-        CHAT = file.readline()
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT}&text={msg}"
-    requests.get(url)
+        line = file.readline()
+        TOKEN = line.replace('\n', '')
+        line = file.readline()
+        CHAT = line.replace('\n', '')
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT}&text={msg}"
+        requests.get(url)

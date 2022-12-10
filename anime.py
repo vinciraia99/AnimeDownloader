@@ -1,8 +1,9 @@
 import sys
 import traceback
 
-from utility import getAnimeClass, cleanProgram
+from utility import getAnimeClass, cleanProgram, customPrint
 
+anime = None
 try:
     if len(sys.argv) == 2:
         print(sys.argv[1])
@@ -21,17 +22,18 @@ try:
                 else:
                     print(episodeList)
                     break
+                customPrint("Ho scaricato l'anime :" + anime.name)
             else:
                 print("Url non valido. Riprova")
-    print("Fatto!")
 except KeyboardInterrupt:
     try:
-        cleanProgram(anime.incomplete)
+        cleanProgram(anime)
     except NameError:
         pass
 except Exception:
-    print(traceback.format_exc())
+    customPrint("Eccezione trovata")
+    customPrint(traceback.format_exc())
     try:
-        cleanProgram(anime.incomplete)
+        cleanProgram(anime)
     except NameError:
         pass

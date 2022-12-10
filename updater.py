@@ -33,30 +33,41 @@ def deleteAiring(dirname):
     path = os.path.join(os.getcwd(), dirname)
     if os.path.isdir(path):
         for file in os.listdir(path):
-            if file == ".url":
-                os.remove(file)
+            if file == ".url" or file == "url":
+                os.remove(os.path.join(path, file))
                 return True
     return False
 
 
+def readFileUrl():
+    file = ""
+    if os.path.isfile(os.path.join(os.getcwd(), dir, ".url")):
+        file = open(os.path.join(os.getcwd(), dir, ".url"), "r")
+    elif os.path.isfile(os.path.join(os.getcwd(), dir, ".incomplete")):
+        file = open(os.path.join(os.getcwd(), dir, ".incomplete"), "r")
+    elif os.path.isfile(os.path.join(os.getcwd(), dir, "url")):
+        file = open(os.path.join(os.getcwd(), dir, "url"), "r")
+    return file
+
+
+def findFileUrl():
+    listDir = []
+    for path in os.listdir(os.getcwd()):
+        if os.path.isdir(path):
+            for subpath in os.listdir(os.path.join(os.getcwd(), path)):
+                if subpath == ".url" or subpath == ".incomplete" or subpath == "url":
+                    if subpath not in listDir:
+                        listDir.append(path)
+    return listDir
+
+
 airing = False
 status = False
-listDir = []
+listDir = findFileUrl()
 listUrl = []
 updated = []
-driver = None
-# try:
-for path in os.listdir(os.getcwd()):
-    if os.path.isdir(path):
-        for subpath in os.listdir(os.path.join(os.getcwd(), path)):
-            if subpath == ".url" or subpath == ".incomplete" or subpath == "url":
-                listDir.append(path)
-
 for dir in listDir:
-    if os.path.isdir(os.path.join(os.getcwd(), dir, ".url")):
-        file = open(os.path.join(os.getcwd(), dir, ".url"), "r")
-    else:
-        file = open(os.path.join(os.getcwd(), dir, ".incomplete"), "r")
+    file = readFileUrl()
     dict = {
         "name": dir,
         "url": file.read(),
@@ -78,7 +89,7 @@ try:
             anime = getAnimeClass(my_url)
             if anime is not None:
                 if isAllAviable(dict_url["name"]):
-                    episodeList = anime.getEpisodeList(dict["episodi"])
+                    episodeList = anime.getEpisodeList(dict_url["episodi"])
                 else:
                     episodeList = anime.getEpisodeList()
                 updated.append(anime.name)
@@ -86,17 +97,16 @@ try:
                 anime.downloadAnime(0, episodeList)
             else:
                 print("Non ci sono nuovi episodi")
-            if anime.airing == False and deleteAiring(dict["name"]):
+            if anime.airing == False and deleteAiring(dict_url["name"]):
                 print("L'anime " + anime.name + " non è più in corso")
         except IndexError:
             print(
                 "L'anime " + dict_url[
                     "name"] + " ha generato un errore, l'errore potrebbe essere causato dal nome modificato manualmente di un anime, per favore ripristina il nome e rilancia lo script ")
             print(traceback.format_exc())
-    print("Chiudo la sessione di Chrome...")
     status = False
     if len(updated) > 0:
-        text = "Ho aggiornato i seguenti anime:"
+        text = "\nHo aggiornato i seguenti anime:"
         for e in updated:
             text += "\n" + e
         customPrint(text)
@@ -104,12 +114,13 @@ try:
         customPrint("Nessun nuovo episodio anime tra quelli in lista")
 except KeyboardInterrupt:
     try:
-        cleanProgram(anime.incomplete)
+        cleanProgram(anime)
     except NameError:
         pass
 except Exception:
-    print(traceback.format_exc())
+    customPrint("Eccezione trovata")
+    customPrint(traceback.format_exc())
     try:
-        cleanProgram(anime.incomplete)
+        cleanProgram(anime)
     except NameError:
         pass

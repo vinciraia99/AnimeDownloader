@@ -75,7 +75,6 @@ class AnimeUnity(AnimeWebSite):
             return None
 
     def getEpisodeList(self, start: int = 0) -> array:
-        from utility import customPrint
         url = self._AnimeWebSite__fixUrl(self.url, "www.animeunity")
         if url is not None:
             AnimeUnity.driver.get(url)
@@ -85,7 +84,7 @@ class AnimeUnity(AnimeWebSite):
             for item in AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="info-item"):
                 if "In Corso" in item.text:
                     self.airing = True
-            customPrint("Acquisisco gli episodi per l'anime: " + self.name)
+            print("Acquisisco gli episodi per l'anime: " + self.name)
             listLargeEpisode = self.__largeEpisodeFetch(start)
             listEpisodi = []
             if start != 0:
@@ -110,7 +109,7 @@ class AnimeUnity(AnimeWebSite):
             return listDictEpisodi
         return result
 
-    def __getTotalEpisode(self,lentotalepisodi :int):
+    def __getTotalEpisode(self, lentotalepisodi: int):
         for item in AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="info-item"):
             try:
                 e = int(item.text.replace("Episodi\n", ""))
@@ -120,7 +119,6 @@ class AnimeUnity(AnimeWebSite):
         return lentotalepisodi
 
     def __getEpisodeTab(self, episodeTab, listLargeEpisode, start) -> array:
-        from utility import customPrint
         listEpisodi = []
         if len(listLargeEpisode) > 0:
             lentotalepisodi = listLargeEpisode[len(listLargeEpisode) - 1].text.split("-")[1]
@@ -149,9 +147,9 @@ class AnimeUnity(AnimeWebSite):
                     try:
                         if self.__checkUrl(new_url_download, self._AnimeWebSite__indexanime,
                                            self.__getTotalEpisode(int(lentotalepisodi)), episodi[x]):
-                            customPrint("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
+                            print("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
                                 lentotalepisodi) + " : " +
-                                        self.__getEpisodioNameFileFromUrl(new_url_download))
+                                  self.__getEpisodioNameFileFromUrl(new_url_download))
                             listEpisodi.append(new_url_download)
                             self._AnimeWebSite__indexanime += 1
                             break
@@ -198,32 +196,32 @@ class AnimeUnity(AnimeWebSite):
         return downloaded
 
     def __downloadWithUrl(self, dir, splitEp, url, anime_name):
-        from utility import show_progress
+        from utility import progressBar
         print("Download fallito, provo con un'altro server")
         for i in range(0, 50):
             try:
                 episodio_url = url + splitEp.split("_")[0] + "/" + splitEp
-                request.urlretrieve(episodio_url, os.path.join(dir, splitEp + ".tmp"), show_progress)
+                request.urlretrieve(episodio_url, os.path.join(dir, splitEp + ".tmp"), progressBar)
             except urllib.error.HTTPError:
                 if "ITA" in anime_name:
                     episodio_url = url + splitEp.split("_")[0] + "ITA" + "/" + splitEp
-                request.urlretrieve(episodio_url, os.path.join(dir, splitEp + ".tmp"), show_progress)
+                request.urlretrieve(episodio_url, os.path.join(dir, splitEp + ".tmp"), progressBar)
         os.rename(os.path.join(dir, splitEp + ".tmp"), os.path.join(dir, splitEp))
         print("")
 
     def __download(self, directory, index, splitEp, anime_name):
-        from utility import show_progress
+        from utility import progressBar
         url = "https://server" + str(index) + ".streamingaw.online/DDL/ANIME/"
         try:
             episodio_url = url + splitEp.split("_")[0] + "/" + splitEp
-            test = request.urlretrieve(episodio_url, os.path.join(directory, splitEp + ".tmp"), show_progress)
+            test = request.urlretrieve(episodio_url, os.path.join(directory, splitEp + ".tmp"), progressBar)
             if not test is None:
                 return True
         except (urllib.error.HTTPError, urllib.error.URLError):
             try:
                 if "ITA" in anime_name:
                     episodio_url = url + splitEp.split("_")[0] + "ITA" + "/" + splitEp
-                    test = request.urlretrieve(episodio_url, os.path.join(directory, splitEp + ".tmp"), show_progress)
+                    test = request.urlretrieve(episodio_url, os.path.join(directory, splitEp + ".tmp"), progressBar)
                     if not test is None:
                         return True
             except(urllib.error.HTTPError, urllib.error.URLError):

@@ -10,9 +10,10 @@ from AnimeWebSite import AnimeWebSite
 class AnimeWorld(AnimeWebSite):
 
     def __init__(self, url: string):
+        self.__soup = None
         super(AnimeWorld, self).__init__(url)
 
-    def __request(self, url: string):
+    def __requestSoup(self, url: string):
         request = requests.request("GET", url)
         return BeautifulSoup(request.content, "html.parser")
 
@@ -26,6 +27,8 @@ class AnimeWorld(AnimeWebSite):
 
     def __largeEpisodeFetch(self, start: int) -> array:
         servertabfinder = self.__soup.findAll("span", class_="server-tab")
+        id = ""
+        parent = ""
         for server in servertabfinder:
             if "AnimeWorld" in server.text:
                 id = server['data-name']
@@ -43,31 +46,37 @@ class AnimeWorld(AnimeWebSite):
         return title.text
 
     def getEpisodeList(self, start: int = 1) -> array:
-        from utility import customPrint
+        if start != 1:
+            start = start + 1
         url = self._AnimeWebSite__fixUrl(self.url, "www.animeworld")
         if url is not None:
-            self.__soup = self.__request(url)
+            self.__soup = self.__requestSoup(url)
             self.name = self.__getAnimeName()
             if self.name is None:
                 return None
             self.__checkIsAiring()
-            customPrint("Acquisisco gli episodi per l'anime: " + self.name)
+            print("Acquisisco gli episodi per l'anime: " + self.name)
             listEpisodiLink = self.__largeEpisodeFetch(start)
             listEpisodi = []
             self._AnimeWebSite__indexanime = start
             first = True
             for episodio in listEpisodiLink:
+                lenlistEpisodiLink = len(listEpisodiLink) - 1
+                lentotalEpisodi = lenlistEpisodiLink + start
                 episodiourl = "https://" + url.split("/")[2] + episodio.find("a")["href"]
-                soap = self.__request(episodiourl)
+                soap = self.__requestSoup(episodiourl)
                 link = self.__findNewUrl(soap)
                 if first:
-                    findLinkFastList = self.__findUrlFastMode(link, len(listEpisodiLink))
-                    if findLinkFastList is not None and len(findLinkFastList) == len(listEpisodiLink):
+                    findLinkFastList = self.__findUrlFastMode(link, lenlistEpisodiLink)
+                    if findLinkFastList is not None and len(findLinkFastList) == (lenlistEpisodiLink + 1):
                         listEpisodi = findLinkFastList
                         break
+                    else:
+                        print("Acquisizione dei link in modalità rapida fallita. Provo in un'altro modo")
                     first = False
-                customPrint("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(len(
-                    listEpisodiLink)) + " : " + self.__getEpisodioNameFileFromUrl(link))
+                print("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
+                    lentotalEpisodi) + " : " + self.__getEpisodioNameFileFromUrl(link))
+                self._AnimeWebSite__indexanime += 1
                 listEpisodi.append(link)
             result = listEpisodi
             if result is not None:
@@ -90,13 +99,9 @@ class AnimeWorld(AnimeWebSite):
                 self.airing = True
 
     def __findUrlFastMode(self, url: string, lentotalepisodi: int):
-        from utility import customPrint
         episodeList = []
         indexAnime = self._AnimeWebSite__indexanime
-        if self._AnimeWebSite__indexanime == 1:
-            indexAnimeTotal = 0
-        else:
-            indexAnimeTotal = self._AnimeWebSite__indexanime
+        indexAnimeTotal = self._AnimeWebSite__indexanime
         for e in url.split("_"):
             try:
                 if int(e) == indexAnime:
@@ -105,7 +110,7 @@ class AnimeWorld(AnimeWebSite):
             except ValueError:
                 pass
         lenstartingepg = len(startingepg)
-        for index in range(int(startingepg), lentotalepisodi + self._AnimeWebSite__indexanime):
+        for index in range(int(startingepg), lentotalepisodi + self._AnimeWebSite__indexanime + 1):
             episodeNumber = str(index)
             indexlen = len(episodeNumber)
             if indexlen != lenstartingepg:
@@ -115,12 +120,12 @@ class AnimeWorld(AnimeWebSite):
             request = requests.head(url_download, headers={
                 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36'})
             if request.status_code == 200:
-                customPrint("Acquisito l'episodio " + str(indexAnime) + " di " + str(
+                print("Acquisito l'episodio " + str(indexAnime) + " di " + str(
                     lentotalepisodi + indexAnimeTotal) + " : " + self.__getEpisodioNameFileFromUrl(url_download))
                 episodeList.append(url_download)
                 indexAnime += 1
             else:
-                customPrint("Impossibile acquisire anime in modalità rapida, provo un altro modo")
+                print("Impossibile acquisire anime in modalità rapida, provo un altro modo")
                 return None
         return episodeList
 
