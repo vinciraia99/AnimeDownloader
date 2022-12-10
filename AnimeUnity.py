@@ -196,32 +196,32 @@ class AnimeUnity(AnimeWebSite):
         return downloaded
 
     def __downloadWithUrl(self, dir, splitEp, url, anime_name):
-        from utility import show_progress
+        from utility import progressBar
         print("Download fallito, provo con un'altro server")
         for i in range(0, 50):
             try:
                 episodio_url = url + splitEp.split("_")[0] + "/" + splitEp
-                request.urlretrieve(episodio_url, os.path.join(dir, splitEp + ".tmp"), show_progress)
+                request.urlretrieve(episodio_url, os.path.join(dir, splitEp + ".tmp"), progressBar)
             except urllib.error.HTTPError:
                 if "ITA" in anime_name:
                     episodio_url = url + splitEp.split("_")[0] + "ITA" + "/" + splitEp
-                request.urlretrieve(episodio_url, os.path.join(dir, splitEp + ".tmp"), show_progress)
+                request.urlretrieve(episodio_url, os.path.join(dir, splitEp + ".tmp"), progressBar)
         os.rename(os.path.join(dir, splitEp + ".tmp"), os.path.join(dir, splitEp))
         print("")
 
     def __download(self, directory, index, splitEp, anime_name):
-        from utility import show_progress
+        from utility import progressBar
         url = "https://server" + str(index) + ".streamingaw.online/DDL/ANIME/"
         try:
             episodio_url = url + splitEp.split("_")[0] + "/" + splitEp
-            test = request.urlretrieve(episodio_url, os.path.join(directory, splitEp + ".tmp"), show_progress)
+            test = request.urlretrieve(episodio_url, os.path.join(directory, splitEp + ".tmp"), progressBar)
             if not test is None:
                 return True
         except (urllib.error.HTTPError, urllib.error.URLError):
             try:
                 if "ITA" in anime_name:
                     episodio_url = url + splitEp.split("_")[0] + "ITA" + "/" + splitEp
-                    test = request.urlretrieve(episodio_url, os.path.join(directory, splitEp + ".tmp"), show_progress)
+                    test = request.urlretrieve(episodio_url, os.path.join(directory, splitEp + ".tmp"), progressBar)
                     if not test is None:
                         return True
             except(urllib.error.HTTPError, urllib.error.URLError):

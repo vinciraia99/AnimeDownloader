@@ -103,7 +103,7 @@ try:
         customPrint("Nessun nuovo episodio anime tra quelli in lista")
 except KeyboardInterrupt:
     try:
-        cleanProgram(anime.incomplete)
+        cleanProgram(anime)
     except NameError:
         pass
 except Exception:

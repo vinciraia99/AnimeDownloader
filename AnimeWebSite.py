@@ -28,7 +28,7 @@ class AnimeWebSite:
             return None
 
     def downloadAnime(self, start, listEpisodi: array = None):
-        from utility import show_progress
+        from utility import progressBar
         if listEpisodi is None:
             listEpisodi = self.getEpisodeList(start)
         listAnimeDownloaded = []
@@ -46,7 +46,7 @@ class AnimeWebSite:
                 print(splitEp + " già trovato nei file scaricati")
             else:
                 try:
-                    request.urlretrieve(episodio["url"], os.path.join(dir, splitEp + ".tmp"), show_progress)
+                    request.urlretrieve(episodio["url"], os.path.join(dir, splitEp + ".tmp"), progressBar)
                     os.rename(os.path.join(dir, splitEp + ".tmp"), os.path.join(dir, splitEp))
                 except (urllib.error.HTTPError, urllib.error.URLError):
                     return listEpisodi[i - 1:len(listEpisodi)]
