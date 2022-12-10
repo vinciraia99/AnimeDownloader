@@ -92,10 +92,9 @@ try:
                 "L'anime " + dict_url[
                     "name"] + " ha generato un errore, l'errore potrebbe essere causato dal nome modificato manualmente di un anime, per favore ripristina il nome e rilancia lo script ")
             print(traceback.format_exc())
-    print("Chiudo la sessione di Chrome...")
     status = False
     if len(updated) > 0:
-        text = "Ho aggiornato i seguenti anime:"
+        text = "\nHo aggiornato i seguenti anime:"
         for e in updated:
             text += "\n" + e
         customPrint(text)
