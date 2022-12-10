@@ -68,7 +68,7 @@ class AnimeWorld(AnimeWebSite):
                 link = self.__findNewUrl(soap)
                 if first:
                     findLinkFastList = self.__findUrlFastMode(link, lenlistEpisodiLink)
-                    if findLinkFastList is not None and len(findLinkFastList) == lentotalEpisodi:
+                    if findLinkFastList is not None and len(findLinkFastList) == (lenlistEpisodiLink+1):
                         listEpisodi = findLinkFastList
                         break
                     else:
