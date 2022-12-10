@@ -92,9 +92,9 @@ try:
                     episodeList = anime.getEpisodeList(dict_url["episodi"])
                 else:
                     episodeList = anime.getEpisodeList()
-                updated.append(anime.name)
             if len(episodeList) > 0:
                 anime.downloadAnime(0, episodeList)
+                updated.append(anime.name)
             else:
                 print("Non ci sono nuovi episodi")
             if anime.airing == False and deleteAiring(dict_url["name"]):
@@ -111,7 +111,7 @@ try:
             text += "\n" + e
         customPrint(text)
     else:
-        customPrint("Nessun nuovo episodio anime tra quelli in lista")
+        customPrint("\nNessun nuovo episodio anime tra quelli in lista")
 except KeyboardInterrupt:
     try:
         cleanProgram(anime)
