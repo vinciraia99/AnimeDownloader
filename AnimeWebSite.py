@@ -14,7 +14,8 @@ class AnimeWebSite:
         self.name = None
         self.__indexanime = 1
 
-    def __fixUrl(self, link: string, website: str):
+    def __fixUrl(self, link: string, website: string):
+        link = link.replace("///", "//")
         if website in link:
             try:
                 split = link.split("/")
