@@ -178,6 +178,7 @@ class AnimeUnity(AnimeWebSite):
                         print("")
                         return False
         self._AnimeWebSite__removeIncompleteFile(self._AnimeWebSite__incomplete)
+        return listEpisodi
 
     def __downloadWithUrl2(self, dir, splitEp, anime_name):
         print("Download fallito, provo con un'altro server")

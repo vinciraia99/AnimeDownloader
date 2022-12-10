@@ -139,3 +139,4 @@ class AnimeWorld(AnimeWebSite):
         listEpisodi = super().downloadAnime(start, listEpisodi)
         if listEpisodi != True:
             raise Exception("Download fallito, potrebbe essere un prpoblema di rete")
+        return listEpisodi
