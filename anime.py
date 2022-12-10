@@ -34,6 +34,6 @@ except Exception:
     customPrint("Eccezione trovata")
     customPrint(traceback.format_exc())
     try:
-        cleanProgram(anime.incomplete)
+        cleanProgram(anime)
     except NameError:
         pass

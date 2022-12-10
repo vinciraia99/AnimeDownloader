@@ -59,7 +59,7 @@ def progressBar(block_num, block_size, total_size):
     global pbar
     if pbar is None:
         widgets = ['Download in corso: ', progressbar.Percentage(), ' ',
-                   progressbar.Bar(marker=progressbar.RotatingMarker()), ' ', progressbar.ETA(), ' ',
+                   progressbar.Bar(), ' ', progressbar.ETA(), ' ',
                    progressbar.FileTransferSpeed()]
         pbar = progressbar.ProgressBar(maxval=total_size,widgets=widgets)
         pbar.start()

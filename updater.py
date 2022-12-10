@@ -77,7 +77,7 @@ try:
             anime = getAnimeClass(my_url)
             if anime is not None:
                 if isAllAviable(dict_url["name"]):
-                    episodeList = anime.getEpisodeList(dict["episodi"])
+                    episodeList = anime.getEpisodeList(dict_url["episodi"])
                 else:
                     episodeList = anime.getEpisodeList()
                 updated.append(anime.name)
@@ -85,7 +85,7 @@ try:
                 anime.downloadAnime(0, episodeList)
             else:
                 print("Non ci sono nuovi episodi")
-            if anime.airing == False and deleteAiring(dict["name"]):
+            if anime.airing == False and deleteAiring(dict_url["name"]):
                 print("L'anime " + anime.name + " non è più in corso")
         except IndexError:
             print(
@@ -110,6 +110,6 @@ except Exception:
     customPrint("Eccezione trovata")
     customPrint(traceback.format_exc())
     try:
-        cleanProgram(anime.incomplete)
+        cleanProgram(anime)
     except NameError:
         pass
