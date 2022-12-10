@@ -111,7 +111,7 @@ try:
             text += "\n" + e
         customPrint(text)
     else:
-        customPrint("Nessun nuovo episodio anime tra quelli in lista")
+        customPrint("\nNessun nuovo episodio anime tra quelli in lista")
 except KeyboardInterrupt:
     try:
         cleanProgram(anime)
