@@ -27,7 +27,7 @@ try:
                 print("Url non valido. Riprova")
 except KeyboardInterrupt:
     try:
-        cleanProgram(anime.incomplete)
+        cleanProgram(anime)
     except NameError:
         pass
 except Exception:

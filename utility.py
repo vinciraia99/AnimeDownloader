@@ -19,17 +19,18 @@ def customPrint(text: string):
     sendTelegram(text)
 
 
-def cleanProgram(incomplete):
-    if incomplete is True:
-        print()
-        print("Pulisco i file temporanei...")
-        for file in os.listdir(os.getcwd()):
-            if os.path.isdir(file):
-                for subpath in os.listdir(os.path.join(os.getcwd(), file)):
-                    if subpath.endswith(".tmp"):
-                        os.remove(os.path.join(os.getcwd(), file, subpath))
-            if file.endswith(".tmp"):
-                os.remove(file)
+def cleanProgram(anime):
+    if anime is not None:
+        if anime.incomplete is True:
+            print()
+            print("Pulisco i file temporanei...")
+            for file in os.listdir(os.getcwd()):
+                if os.path.isdir(file):
+                    for subpath in os.listdir(os.path.join(os.getcwd(), file)):
+                        if subpath.endswith(".tmp"):
+                            os.remove(os.path.join(os.getcwd(), file, subpath))
+                if file.endswith(".tmp"):
+                    os.remove(file)
     print("Fatto!")
     exit(0)
 
