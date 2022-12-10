@@ -1,7 +1,7 @@
 selenium
 webdriver-manager
 packaging
-progressbar
+progressbar2
 BeautifulSoup4
 urllib3
 requests
