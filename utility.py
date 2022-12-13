@@ -6,8 +6,8 @@ import requests
 from progressbar import DataSize, FileTransferSpeed, Bar, Percentage
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as OptionChrome
-from selenium.webdriver.edge.options import Options as OptionEdge
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.edge.options import Options as OptionEdge
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
@@ -34,7 +34,7 @@ def cleanProgram(anime):
                             os.remove(os.path.join(os.getcwd(), file, subpath))
                 if file.endswith(".tmp"):
                     os.remove(file)
-    print("Fatto!")
+    print("Chiudo il programma")
     exit(0)
 
 
