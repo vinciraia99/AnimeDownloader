@@ -5,9 +5,11 @@ import progressbar
 import requests
 from progressbar import DataSize, FileTransferSpeed, Bar, Percentage
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.options import Options as OptionChrome
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.edge.options import Options as OptionEdge
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 from AnimeUnity import AnimeUnity
 from AnimeWorld import AnimeWorld
@@ -32,21 +34,40 @@ def cleanProgram(anime):
                             os.remove(os.path.join(os.getcwd(), file, subpath))
                 if file.endswith(".tmp"):
                     os.remove(file)
-    print("Fatto!")
+    print("Chiudo il programma")
     exit(0)
 
 
-def setOption():
-    options = Options()
+def setChromeOption():
+    options = OptionChrome()
     options.add_argument('--headless')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-logging')
+    options.add_argument('--no-sandbox')
+    options.add_experimental_option("excludeSwitches", ["enable-logging"])
+    return options
+
+
+def setEdgeOptions():
+    options = OptionEdge()
+    options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--disable-logging')
+    options.add_argument('--no-sandbox')
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     return options
 
 
 def initDriver():
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=setOption())
+    try:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=setChromeOption())
+    except Exception:
+        try:
+            print("Chrome non installato, provo con Edge...")
+            driver = webdriver.ChromiumEdge(service=Service(EdgeChromiumDriverManager().install()),options=setEdgeOptions())
+        except Exception:
+            raise Exception("Ne Chrome, ne Edge sono installati. Perfavore installa almeno uno dei due broswer per avviare lo script")
+    return driver
 
 
 def getAnimeClass(url: string):

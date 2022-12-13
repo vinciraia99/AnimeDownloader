@@ -81,10 +81,9 @@ class AnimeUnity(AnimeWebSite):
             self.name = self.__getAnimeName()
             if self.name is None:
                 return None
-            for item in AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="info-item"):
-                if "In Corso" in item.text:
-                    self.airing = True
-            print("Acquisisco gli episodi per l'anime: " + self.name)
+            self.__checkIsAiring()
+            from utility import customPrint
+            customPrint("Acquisisco gli episodi per l'anime: " + self.name)
             listLargeEpisode = self.__largeEpisodeFetch(start)
             listEpisodi = []
             if start != 0:
@@ -109,6 +108,11 @@ class AnimeUnity(AnimeWebSite):
             return listDictEpisodi
         return result
 
+    def __checkIsAiring(self):
+        for item in AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="info-item"):
+            if "In Corso" in item.text:
+                self.airing = True
+
     def __getTotalEpisode(self, lentotalepisodi: int):
         for item in AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="info-item"):
             try:
@@ -129,6 +133,7 @@ class AnimeUnity(AnimeWebSite):
         WebDriverWait(AnimeUnity.driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, "episode-item")))
         episodi = AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="episode-item")
         lenepisodi = len(episodi)
+        printendIndex = self._AnimeWebSite__indexanime
         if len(listLargeEpisode) == 0:
             lentotalepisodi = len(episodi)
         for x in range(start, lenepisodi):
@@ -144,14 +149,23 @@ class AnimeUnity(AnimeWebSite):
                         EC.visibility_of_element_located((By.CLASS_NAME, "plyr__control")))
                     new_url_download = self.__findNewUrl(
                         AnimeUnity.driver.find_elements(by=By.CLASS_NAME, value="plyr__control"))
+                    if x == 0:
+                        for e in new_url_download.split("_"):
+                            try:
+                                if int(e) == 0:
+                                    self._AnimeWebSite__indexanime = 0
+                                    break
+                            except ValueError:
+                                pass
                     try:
-                        if self.__checkUrl(new_url_download, self._AnimeWebSite__indexanime,
+                        if self.__checkUrl(new_url_download,
                                            self.__getTotalEpisode(int(lentotalepisodi)), episodi[x]):
-                            print("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
+                            print("Acquisito l'episodio " + str(printendIndex) + " di " + str(
                                 lentotalepisodi) + " : " +
                                   self.__getEpisodioNameFileFromUrl(new_url_download))
                             listEpisodi.append(new_url_download)
                             self._AnimeWebSite__indexanime += 1
+                            printendIndex += 1
                             break
                     except IndexError:
                         raise Exception("AnimeUnity non ha disponibile per il download l'anime")
@@ -178,6 +192,7 @@ class AnimeUnity(AnimeWebSite):
                         print("")
                         return False
         self._AnimeWebSite__removeIncompleteFile(self._AnimeWebSite__incomplete)
+        return listEpisodi
 
     def __downloadWithUrl2(self, dir, splitEp, anime_name):
         print("Download fallito, provo con un'altro server")
@@ -228,10 +243,13 @@ class AnimeUnity(AnimeWebSite):
                 return False
         return False
 
-    def __checkUrl(self, link: string, index: int, lenepisodi: int, episodio: WebElement) -> bool:
+    def __checkUrl(self, link: string, lenepisodi: int, episodio: WebElement) -> bool:
+        index = self._AnimeWebSite__indexanime
         flag = False
         if index > 10:
             flag = True
+        if "Movie" in link:
+            return True
         for e in link.split("_"):
             try:
                 if int(e) > lenepisodi:
@@ -243,7 +261,7 @@ class AnimeUnity(AnimeWebSite):
                 elif flag and "0" + str(index) == e:
                     return True
                 elif len(e.split("-")) > 0 and episodio.text.replace(" ", "") == e:
-                    self.__indexanime = int(episodio.text.split("-")[1])
+                    self._AnimeWebSite__indexanime = int(episodio.text.split("-")[1])
                     return True
             except ValueError:
                 pass
