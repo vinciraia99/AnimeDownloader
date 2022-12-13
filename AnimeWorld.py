@@ -118,7 +118,7 @@ class AnimeWorld(AnimeWebSite):
             return None
         lenstartingepg = len(startingepg)
         for index in range(int(startingepg),
-                           lentotalepisodi + self._AnimeWebSite__indexanime + 1 - (indexAnime - indexAnimeString)):
+                           lentotalepisodi + self._AnimeWebSite__indexanime + 1 - (indexAnimeString - indexAnime)):
             episodeNumber = str(index)
             indexlen = len(episodeNumber)
             if indexlen != lenstartingepg:
