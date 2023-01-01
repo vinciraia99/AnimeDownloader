@@ -56,7 +56,7 @@ def findFileUrl():
         if os.path.isdir(path):
             for subpath in os.listdir(os.path.join(os.getcwd(), path)):
                 if subpath == ".url" or subpath == ".incomplete" or subpath == "url":
-                    if subpath not in listDir:
+                    if path not in listDir:
                         listDir.append(path)
     return listDir
 
