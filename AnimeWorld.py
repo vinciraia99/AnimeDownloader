@@ -62,6 +62,9 @@ class AnimeWorld(AnimeWebSite):
             listEpisodi = []
             self._AnimeWebSite__indexanime = start
             first = True
+            if len(listEpisodiLink) == start:
+                # Fix Updater
+                return listEpisodi
             for episodio in listEpisodiLink:
                 lenlistEpisodiLink = len(listEpisodiLink) - 1
                 lentotalEpisodi = lenlistEpisodiLink + start
