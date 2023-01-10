@@ -82,8 +82,7 @@ class AnimeUnity(AnimeWebSite):
             if self.name is None:
                 return None
             self.__checkIsAiring()
-            from utility import customPrint
-            customPrint("Acquisisco gli episodi per l'anime: " + self.name)
+            print("Acquisisco gli episodi per l'anime: " + self.name)
             listLargeEpisode = self.__largeEpisodeFetch(start)
             listEpisodi = []
             if start != 0:

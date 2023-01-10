@@ -56,8 +56,7 @@ class AnimeWorld(AnimeWebSite):
             except Exception:
                 return None
             self.__checkIsAiring()
-            from utility import customPrint
-            customPrint("Acquisisco gli episodi per l'anime: " + self.name)
+            print("Acquisisco gli episodi per l'anime: " + self.name)
             listEpisodiLink = self.__largeEpisodeFetch(start)
             listEpisodi = []
             self._AnimeWebSite__indexanime = start
