@@ -45,7 +45,11 @@ class AnimeWorld(AnimeWebSite):
         title = self.__soup.find(id="anime-title")
         return title.text
 
-    def getEpisodeList(self, start: int = 1) -> array:
+    def getEpisodeList(self, start: int = -1) -> array:
+        checkEpisode = True
+        if start == -1:
+            checkEpisode = False
+            start = 1
         if start != 1:
             start = start + 1
         url = self._AnimeWebSite__fixUrl(self.url, "www.animeworld")
@@ -61,7 +65,7 @@ class AnimeWorld(AnimeWebSite):
             listEpisodi = []
             self._AnimeWebSite__indexanime = start
             first = True
-            if len(listEpisodiLink) == start:
+            if len(listEpisodiLink) == start and checkEpisode:
                 # Fix Updater
                 return listEpisodi
             for episodio in listEpisodiLink:
@@ -147,7 +151,7 @@ class AnimeWorld(AnimeWebSite):
             if word.endswith(".mp4"):
                 return word
 
-    def downloadAnime(self, start: int = 1, listEpisodi: array = None):
+    def downloadAnime(self, start: int = -1, listEpisodi: array = None):
         listEpisodi = super().downloadAnime(start, listEpisodi)
         if listEpisodi != True:
             raise Exception("Download fallito, potrebbe essere un prpoblema di rete")
