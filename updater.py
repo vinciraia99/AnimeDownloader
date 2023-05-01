@@ -20,10 +20,17 @@ def isAllAviable(dirname):
         mp4.sort()
         prec = int(mp4[0].split("_")[2])
         for i in range(1, len(mp4)):
-            if int(mp4[i].split("_")[2]) == prec + 1:
-                prec = int(mp4[i].split("_")[2])
-            else:
-                return False
+            try:
+                episodeNumber = int(mp4[i].split("_")[2])
+                if episodeNumber == prec + 1:
+                    prec = episodeNumber
+                else:
+                    return False
+            except ValueError:
+                if "." in mp4[i].split("_")[2]:
+                    continue
+                else:
+                    return False
     else:
         return False
     return True

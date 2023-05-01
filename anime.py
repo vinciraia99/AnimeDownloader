@@ -15,6 +15,8 @@ try:
                 print("Url non valido. Riprova")
             else:
                 customPrint("Ho scaricato l'anime : " + anime.name)
+        else:
+            print("Url non valido. Riprova")
     else:
         while True:
             my_url = input("Inserisci l'url dell'anime da scaricare: ")
