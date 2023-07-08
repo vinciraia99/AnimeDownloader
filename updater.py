@@ -22,7 +22,7 @@ def isAllAviable(dirname):
         if "." in episode_number:
             return False
         else:
-            prec = mp4[0].split("_")[2]
+            prec = int(mp4[0].split("_")[2])
         for i in range(1, len(mp4)):
             try:
                 episodeNumber = int(mp4[i].split("_")[2])
