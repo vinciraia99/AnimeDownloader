@@ -80,7 +80,7 @@ class AnimeWorld(AnimeWebSite):
                         listEpisodi = findLinkFastList
                         break
                     else:
-                        print("Acquisizione dei link in modalità rapida fallita. Provo in un'altro modo")
+                        print("Acquisizione dei link in modalità rapida fallita. Provo in un altro modo")
                     first = False
                 print("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
                     lentotalEpisodi) + " : " + self.__getEpisodioNameFileFromUrl(link))
