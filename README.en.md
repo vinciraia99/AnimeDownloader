@@ -8,7 +8,6 @@ This tool has not yet been translated into English, and the currently supported 
 
 This script in Python allows automatic downloading of anime episodes from the following sites:
 
-* AnimeUnity
 * AnimeWorld
 
 ## Usage

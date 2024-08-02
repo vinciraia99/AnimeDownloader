@@ -4,14 +4,6 @@ import string
 import progressbar
 import requests
 from progressbar import DataSize, FileTransferSpeed, Bar, Percentage
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options as OptionChrome
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.edge.options import Options as OptionEdge
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
-
-from AnimeUnity import AnimeUnity
 from AnimeWorld import AnimeWorld
 
 pbar = None
@@ -47,33 +39,8 @@ def setChromeOption():
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     return options
 
-
-def setEdgeOptions():
-    options = OptionEdge()
-    options.add_argument('--headless')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--disable-logging')
-    options.add_argument('--no-sandbox')
-    options.add_experimental_option("excludeSwitches", ["enable-logging"])
-    return options
-
-
-def initDriver():
-    try:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=setChromeOption())
-    except Exception:
-        try:
-            print("Chrome non installato, provo con Edge...")
-            driver = webdriver.ChromiumEdge(service=Service(EdgeChromiumDriverManager().install()),options=setEdgeOptions())
-        except Exception:
-            raise Exception("Ne Chrome, ne Edge sono installati. Perfavore installa almeno uno dei due broswer per avviare lo script")
-    return driver
-
-
 def getAnimeClass(url: string):
-    if "animeunity" in url:
-        return AnimeUnity(url)
-    elif "animeworld" in url:
+    if "animeworld" in url:
         return AnimeWorld(url)
 
 

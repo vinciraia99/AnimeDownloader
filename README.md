@@ -6,7 +6,6 @@
 
 Questo script in Python permette il download automatico di episodi di un anime dai seguenti siti:
 
-* AnimeUnity
 * AnimeWorld
 
 ## Usage
