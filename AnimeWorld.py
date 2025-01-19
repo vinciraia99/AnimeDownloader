@@ -3,6 +3,7 @@ import string
 
 import requests
 from bs4 import BeautifulSoup
+import animeworld as aw
 
 from AnimeWebSite import AnimeWebSite
 
@@ -14,8 +15,8 @@ class AnimeWorld(AnimeWebSite):
         super(AnimeWorld, self).__init__(url)
 
     def __requestSoup(self, url: string):
-        request = requests.request("GET", url)
-        return BeautifulSoup(request.content, "html.parser")
+        anime = aw.Anime(link=url)
+        return BeautifulSoup(anime.html, "html.parser")
 
     def __findNewUrl(self, soap):
         parent = soap.find("div", class_="downloads")
@@ -42,7 +43,7 @@ class AnimeWorld(AnimeWebSite):
         return episodiTab[start - 1:len(episodiTab)]
 
     def __getAnimeName(self) -> string:
-        title = self.__soup.find(id="anime-title")
+        title = self.__soup.find('h1', class_='title')
         return title.text
 
     def getEpisodeList(self, start: int = -1) -> array:
