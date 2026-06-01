@@ -1,159 +1,115 @@
-import array
-import string
+from __future__ import annotations
 
-import requests
-from bs4 import BeautifulSoup
+from typing import List, Dict, Optional
+import re
+
 import animeworld as aw
+from tqdm import tqdm
 
 from AnimeWebSite import AnimeWebSite
 
 
 class AnimeWorld(AnimeWebSite):
+    def __init__(self, url: str):
+        self._anime: Optional[aw.Anime] = None
+        super().__init__(url)
 
-    def __init__(self, url: string):
-        self.__soup = None
-        super(AnimeWorld, self).__init__(url)
+    def _parse_url(self) -> str:
+        url = self.url.strip()
+        m = re.match(r'^(https?://[^/]+)(/play/[^/]+)', url)
+        if m:
+            aw.SES.base_url = m.group(1)
+            return m.group(2)
+        return url
 
-    def __requestSoup(self, url: string):
-        anime = aw.Anime(link=url)
-        return BeautifulSoup(anime.html, "html.parser")
+    def _get_best_link(self, episode) -> Optional[str]:
+        if not hasattr(episode, 'links') or not episode.links:
+            return None
+        for lnk in episode.links:
+            if 'animeworld' in getattr(lnk, 'name', '').lower():
+                return lnk.link
+        return episode.links[0].link
 
-    def __findNewUrl(self, soap):
-        parent = soap.find("div", class_="downloads")
-        listLink = parent.findAll("a")
-        for link in listLink:
-            href = link['href']
-            if ".mp4" in href and not ".php" in href:
-                return href
+    def _name_from_url(self, url: str) -> str:
+        filename = url.rstrip('/').split('/')[-1].split('?')[0]
+        if not filename.lower().endswith('.mp4'):
+            filename += '.mp4'
+        return filename
 
-    def __largeEpisodeFetch(self, start: int) -> array:
-        servertabfinder = self.__soup.findAll("span", class_="server-tab")
-        id = ""
-        parent = ""
-        for server in servertabfinder:
-            if "AnimeWorld" in server.text:
-                id = server['data-name']
-                break
-        serverfinder = self.__soup.findAll("div", class_="server")
-        for server in serverfinder:
-            if str(id) == server['data-name']:
-                parent = server
-                break
-        episodiTab = parent.findAll("li", class_="episode")
-        return episodiTab[start - 1:len(episodiTab)]
+    def getEpisodeList(self, start: int = -1) -> Optional[List[Dict]]:
+        path = self._parse_url()
 
-    def __getAnimeName(self) -> string:
-        title = self.__soup.find('h1', class_='title')
-        return title.text
-
-    def getEpisodeList(self, start: int = -1) -> array:
-        checkEpisode = True
-        if start == -1:
-            checkEpisode = False
-            start = 1
-        if start != 1:
-            start = start + 1
-        url = self._AnimeWebSite__fixUrl(self.url, "www.animeworld")
-        if url is not None:
-            try:
-                self.__soup = self.__requestSoup(url)
-                self.name = self.__getAnimeName()
-            except Exception:
-                return None
-            self.__checkIsAiring()
-            print("Acquisisco gli episodi per l'anime: " + self.name)
-            listEpisodiLink = self.__largeEpisodeFetch(start)
-            listEpisodi = []
-            self._AnimeWebSite__indexanime = start
-            first = True
-            if len(listEpisodiLink) == start and checkEpisode:
-                # Fix Updater
-                return listEpisodi
-            for episodio in listEpisodiLink:
-                lenlistEpisodiLink = len(listEpisodiLink) - 1
-                lentotalEpisodi = lenlistEpisodiLink + start
-                episodiourl = "https://" + url.split("/")[2] + episodio.find("a")["href"]
-                soap = self.__requestSoup(episodiourl)
-                link = self.__findNewUrl(soap)
-                if first:
-                    findLinkFastList = self.__findUrlFastMode(link, lenlistEpisodiLink)
-                    if findLinkFastList is not None and len(findLinkFastList) == (lenlistEpisodiLink + 1):
-                        listEpisodi = findLinkFastList
-                        break
-                    else:
-                        print("Acquisizione dei link in modalità rapida fallita. Provo in un altro modo")
-                    first = False
-                print("Acquisito l'episodio " + str(self._AnimeWebSite__indexanime) + " di " + str(
-                    lentotalEpisodi) + " : " + self.__getEpisodioNameFileFromUrl(link))
-                self._AnimeWebSite__indexanime += 1
-                listEpisodi.append(link)
-            result = listEpisodi
-            if result is not None:
-                listDictEpisodi = []
-                for episodio in result:
-                    dict = {
-                        'url': episodio,
-                        'name': self.__getEpisodioNameFileFromUrl(episodio)
-                    }
-                    listDictEpisodi.append(dict)
-                return listDictEpisodi
-            else:
-                return None
-        else:
+        try:
+            self._anime = aw.Anime(link=path)
+        except aw.Error404:
+            print('Anime non trovato (404).')
+            return None
+        except aw.DeprecatedLibrary as e:
+            print(f'Libreria deprecata: {e}')
+            return None
+        except Exception as e:
+            print(f'Errore creazione anime: {e}')
             return None
 
-    def __checkIsAiring(self):
-        for item in self.__soup.findAll("dd"):
-            if "In corso" in item.text:
-                self.airing = True
+        try:
+            self.name = self._anime.getName()
+        except Exception:
+            slug = path.rstrip('/').split('/')[-1]
+            self.name = re.sub(r'\.[A-Za-z0-9]{2,8}$', '', slug).replace('-', ' ').title()
 
-    def __findUrlFastMode(self, url: string, lentotalepisodi: int):
-        episodeList = []
-        indexAnime = self._AnimeWebSite__indexanime
-        indexAnimeString = self._AnimeWebSite__indexanime
-        indexAnimeTotal = self._AnimeWebSite__indexanime
-        startingepg = None
-        for e in url.split("_"):
-            try:
-                if indexAnime - 1 == int(e):
-                    indexAnime -= 1
-                if int(e) == indexAnime:
-                    startingepg = e
-                    break
-            except ValueError:
-                pass
-        if startingepg is None:
+        try:
+            info = self._anime.getInfo()
+            stato = str(info.get('Stato', '')).lower()
+            self.airing = 'in corso' in stato or 'ongoing' in stato
+        except Exception:
+            self.airing = False
+
+        try:
+            episodes = list(self._anime.getEpisodes())
+        except aw.AnimeNotAvailable as e:
+            print(f'Anime non disponibile: {e}')
             return None
-        lenstartingepg = len(startingepg)
-        for index in range(int(startingepg),
-                           lentotalepisodi + self._AnimeWebSite__indexanime + 1 - (indexAnimeString - indexAnime)):
-            episodeNumber = str(index)
-            indexlen = len(episodeNumber)
-            if indexlen != lenstartingepg:
-                for e in range(indexlen, lenstartingepg):
-                    episodeNumber = "0" + episodeNumber
-            url_download = url.replace(startingepg, episodeNumber)
-            request = requests.head(url_download, headers={
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36'})
-            if request.status_code == 200:
-                print("Acquisito l'episodio " + str(indexAnimeString) + " di " + str(
-                    lentotalepisodi + indexAnimeTotal) + " : " + self.__getEpisodioNameFileFromUrl(url_download))
-                episodeList.append(url_download)
-                indexAnime += 1
-                indexAnimeString += 1
-            else:
-                print("Impossibile acquisire anime in modalità rapida, provo un altro modo")
-                return None
-        return episodeList
+        except Exception as e:
+            print(f'Errore recupero episodi: {e}')
+            return None
 
-    def __getEpisodioNameFileFromUrl(self, url: string):
-        array = url.split("/")
-        for word in array:
-            if word.endswith(".mp4"):
-                return word
+        start_index = 0 if start == -1 else max(start - 1, 0)
+        episodes = episodes[start_index:]
+        total = len(episodes)
 
-    def downloadAnime(self, start: int = -1, listEpisodi: array = None):
-        listEpisodi = super().downloadAnime(start, listEpisodi)
-        if listEpisodi != True:
-            raise Exception("Download fallito, potrebbe essere un prpoblema di rete")
-        return listEpisodi
+        if total == 0:
+            return []
+
+        print(f'\nAnime:   {self.name}')
+        print(f"Airing:  {'Sì (in corso)' if self.airing else 'No (completo)'}")
+        print(f'Episodi: {total}\n')
+
+        final_list = []
+        with tqdm(total=total, desc='Analisi episodi', unit='ep', dynamic_ncols=True) as pbar:
+            for ep in episodes:
+                link = self._get_best_link(ep)
+                name = self._name_from_url(link) if link else f'Episodio_{ep.number}.mp4'
+                final_list.append({
+                    'episode': ep,
+                    'number': str(ep.number),
+                    'name': name,
+                    'url': link or '',
+                })
+                pbar.set_postfix_str(name[:50])
+                pbar.update(1)
+
+        print()
+        for ep in final_list:
+            tqdm.write(f"  [EP {ep['number']:>3}] {ep['name']}")
+
+        return final_list
+
+    def downloadAnime(self, start: int = -1, listEpisodi=None, max_workers: int = 6):
+        result = super().downloadAnime(
+            start=start,
+            listEpisodi=listEpisodi,
+            max_workers=max_workers,
+        )
+        if result is not True:
+            raise Exception('Download fallito')
+        return result
