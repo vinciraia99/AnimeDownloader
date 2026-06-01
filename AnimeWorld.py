@@ -104,7 +104,7 @@ class AnimeWorld(AnimeWebSite):
 
         return final_list
 
-    def downloadAnime(self, start: int = -1, listEpisodi=None, max_workers: int = 6):
+    def downloadAnime(self, start: int = -1, listEpisodi=None, max_workers: int = 9):
         result = super().downloadAnime(
             start=start,
             listEpisodi=listEpisodi,
