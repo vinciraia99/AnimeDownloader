@@ -1,137 +1,264 @@
+from __future__ import annotations
+
+import multiprocessing
+import os
+import re
 import traceback
 import warnings
+from pathlib import Path
+from typing import Optional
 
 from utility import *
 
 warnings.filterwarnings("ignore")
 
-
-def getMp4Element(dirname):
-    mp4 = []
-    for file in os.listdir(os.path.join(os.getcwd(), dirname)):
-        if file.endswith(".mp4"):
-            mp4.append(file)
-    return mp4
+MARKER_FILES = (".url", ".incomplete", "url")
+EPISODE_REGEX = re.compile(r"_Ep_(\d+)", re.IGNORECASE)
 
 
-def isAllAviable(dirname):
-    mp4 = getMp4Element(dirname)
-    if len(mp4) > 0:
-        mp4.sort()
-        episode_number = mp4[0].split("_")[2]
-        if "." in episode_number:
-            return False
-        else:
-            prec = int(mp4[0].split("_")[2])
-        for i in range(1, len(mp4)):
+def get_mp4_files(dirname: str) -> list[str]:
+    folder = Path(os.getcwd()) / dirname
+    try:
+        if not folder.is_dir():
+            return []
+    except OSError:
+        return []
+
+    files = []
+    try:
+        for file in folder.iterdir():
             try:
-                episodeNumber = int(mp4[i].split("_")[2])
-                if episodeNumber == prec + 1:
-                    prec = episodeNumber
-                else:
-                    return False
-            except ValueError:
-                if "." in mp4[i].split("_")[2]:
-                    continue
-                else:
-                    return False
-    else:
+                if file.is_file() and file.suffix.lower() == ".mp4":
+                    files.append(file.name)
+            except OSError:
+                continue
+    except OSError:
+        return []
+
+    return sorted(files)
+
+
+def extract_episode_number(filename: str) -> Optional[int]:
+    match = EPISODE_REGEX.search(filename)
+    if not match:
+        return None
+    return int(match.group(1))
+
+
+def get_downloaded_episode_numbers(dirname: str) -> list[int]:
+    numbers = []
+    for filename in get_mp4_files(dirname):
+        number = extract_episode_number(filename)
+        if number is not None:
+            numbers.append(number)
+    return sorted(set(numbers))
+
+
+def get_last_downloaded_episode(dirname: str) -> int:
+    numbers = get_downloaded_episode_numbers(dirname)
+    return max(numbers) if numbers else 0
+
+
+def is_sequence_complete(dirname: str) -> bool:
+    numbers = get_downloaded_episode_numbers(dirname)
+    if not numbers:
         return False
+
+    for i in range(1, len(numbers)):
+        if numbers[i] != numbers[i - 1] + 1:
+            return False
     return True
 
 
-def deleteAiring(dirname):
-    path = os.path.join(os.getcwd(), dirname)
-    if os.path.isdir(path):
-        for file in os.listdir(path):
-            if file == ".url" or file == "url":
-                os.remove(os.path.join(path, file))
+def delete_airing(dirname: str) -> bool:
+    folder = Path(os.getcwd()) / dirname
+    try:
+        if not folder.is_dir():
+            return False
+    except OSError:
+        return False
+
+    for marker in (".url", "url"):
+        marker_path = folder / marker
+        try:
+            if marker_path.is_file():
+                marker_path.unlink()
                 return True
+        except OSError:
+            continue
     return False
 
 
-def readFileUrl():
-    file = ""
-    if os.path.isfile(os.path.join(os.getcwd(), dir, ".url")):
-        file = open(os.path.join(os.getcwd(), dir, ".url"), "r")
-    elif os.path.isfile(os.path.join(os.getcwd(), dir, ".incomplete")):
-        file = open(os.path.join(os.getcwd(), dir, ".incomplete"), "r")
-    elif os.path.isfile(os.path.join(os.getcwd(), dir, "url")):
-        file = open(os.path.join(os.getcwd(), dir, "url"), "r")
-    return file
-
-
-def findFileUrl():
-    listDir = []
-    for path in os.listdir(os.getcwd()):
-        if os.path.isdir(path):
-            for subpath in os.listdir(os.path.join(os.getcwd(), path)):
-                if subpath == ".url" or subpath == ".incomplete" or subpath == "url":
-                    if path not in listDir:
-                        listDir.append(path)
-    return listDir
-
-
-airing = False
-status = False
-listDir = findFileUrl()
-listUrl = []
-updated = []
-for dir in listDir:
-    file = readFileUrl()
-    dict = {
-        "name": dir,
-        "url": file.read(),
-        "episodi": len(getMp4Element(dir))
-
-    }
-    listUrl.append(dict)
-    file.close()
-animeindex = 1
-status = True
-try:
-    for dict_url in listUrl:
+def read_tracking_url(dirname: str) -> Optional[str]:
+    folder = Path(os.getcwd()) / dirname
+    for marker in MARKER_FILES:
+        marker_path = folder / marker
         try:
-            print("== Verifico se ci sono nuovi episodi per l'anime " + str(animeindex) + " di " + str(
-                len(listUrl)) + " : " +
-                  dict_url["name"] + " ==")
-            animeindex += 1
-            my_url = dict_url["url"]
-            anime = getAnimeClass(my_url)
-            if anime is not None:
-                if isAllAviable(dict_url["name"]):
-                    episodeList = anime.getEpisodeList(dict_url["episodi"])
-                else:
-                    episodeList = anime.getEpisodeList()
-            if len(episodeList) > 0:
-                anime.downloadAnime(0, episodeList)
-                updated.append(anime.name)
-            else:
-                print("Non ci sono nuovi episodi")
-            if anime.airing == False and deleteAiring(dict_url["name"]):
-                print("L'anime " + anime.name + " non è più in corso")
-        except IndexError:
-            print(
-                "L'anime " + dict_url[
-                    "name"] + " ha generato un errore, l'errore potrebbe essere causato dal nome modificato manualmente di un anime, per favore ripristina il nome e rilancia lo script ")
+            if marker_path.is_file():
+                return marker_path.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+    return None
+
+
+def find_tracked_dirs() -> list[str]:
+    cwd = Path(os.getcwd())
+    result = []
+
+    try:
+        entries = list(cwd.iterdir())
+    except OSError:
+        print("[ERR] Impossibile leggere la directory corrente")
+        print(traceback.format_exc())
+        return result
+
+    for path in entries:
+        try:
+            if not path.is_dir():
+                continue
+        except OSError:
+            print(f"[WARN] Directory non accessibile, salto: {path}")
+            continue
+
+        found = False
+        for marker in MARKER_FILES:
+            try:
+                if (path / marker).is_file():
+                    found = True
+                    break
+            except OSError:
+                continue
+
+        if found:
+            result.append(path.name)
+
+    return sorted(result)
+
+
+def build_tracked_list() -> list[dict]:
+    tracked = []
+
+    for dirname in find_tracked_dirs():
+        try:
+            url = read_tracking_url(dirname)
+            if not url:
+                print(f"[WARN] URL non trovata per: {dirname}")
+                continue
+
+            tracked.append({
+                "name": dirname,
+                "url": url,
+                "downloaded_numbers": get_downloaded_episode_numbers(dirname),
+                "last_episode": get_last_downloaded_episode(dirname),
+                "is_complete": is_sequence_complete(dirname),
+            })
+        except Exception:
+            print(f"[ERR] Impossibile costruire i dati per: {dirname}")
             print(traceback.format_exc())
-    status = False
-    if len(updated) > 0:
-        text = "\nHo aggiornato i seguenti anime:"
-        for e in updated:
-            text += "\n" + e
-        customPrint(text)
+            continue
+
+    return tracked
+
+
+def filter_missing_episodes(episode_list: list[dict], downloaded_numbers: list[int]) -> list[dict]:
+    already_downloaded = set(downloaded_numbers)
+    filtered = []
+
+    for ep in episode_list:
+        try:
+            ep_number = int(ep.get("number", 0))
+        except Exception:
+            ep_number = 0
+
+        if ep_number not in already_downloaded:
+            filtered.append(ep)
+
+    return filtered
+
+
+def process_anime(tracked: dict, index: int, total: int):
+    print(
+        "== Verifico se ci sono nuovi episodi per l'anime "
+        + str(index)
+        + " di "
+        + str(total)
+        + " : "
+        + tracked["name"]
+        + " =="
+    )
+
+    my_url = tracked["url"]
+    anime = getAnimeClass(my_url)
+    if anime is None:
+        print("Url non valido. Riprova")
+        return None
+
+    if tracked["is_complete"] and tracked["last_episode"] > 0:
+        episode_list = anime.getEpisodeList(tracked["last_episode"])
     else:
-        customPrint("\nNessun nuovo episodio anime tra quelli in lista")
-except KeyboardInterrupt:
+        episode_list = anime.getEpisodeList()
+        if episode_list is None:
+            episode_list = []
+        episode_list = filter_missing_episodes(episode_list, tracked["downloaded_numbers"])
+
+    if episode_list is None:
+        episode_list = []
+
+    if len(episode_list) > 0:
+        anime.downloadAnime(0, episode_list)
+        if anime.airing is False and delete_airing(tracked["name"]):
+            print("L'anime " + anime.name + " non è più in corso")
+        return anime.name
+
+    print("Non ci sono nuovi episodi")
+
+    if anime.airing is False and delete_airing(tracked["name"]):
+        print("L'anime " + anime.name + " non è più in corso")
+
+    return None
+
+
+def main():
+    updated = []
+    anime = None
+
     try:
-        cleanProgram(anime)
-    except NameError:
-        pass
-except Exception:
-    customPrint("Eccezione trovata")
-    customPrint(traceback.format_exc())
-    try:
-        cleanProgram(anime)
-    except NameError:
-        pass
+        tracked_list = build_tracked_list()
+
+        for animeindex, tracked in enumerate(tracked_list, start=1):
+            try:
+                anime_name = process_anime(tracked, animeindex, len(tracked_list))
+                if anime_name:
+                    updated.append(anime_name)
+            except KeyboardInterrupt:
+                raise
+            except Exception:
+                print(f"[ERR] Errore durante l'elaborazione della directory: {tracked['name']}")
+                print(traceback.format_exc())
+                continue
+
+        if len(updated) > 0:
+            text = "\nHo aggiornato i seguenti anime:"
+            for name in updated:
+                text += "\n" + name
+            customPrint(text)
+        else:
+            customPrint("\nNessun nuovo episodio anime tra quelli in lista")
+
+    except KeyboardInterrupt:
+        try:
+            cleanProgram(anime)
+        except Exception:
+            pass
+    except Exception:
+        customPrint("Eccezione trovata")
+        customPrint(traceback.format_exc())
+        try:
+            cleanProgram(anime)
+        except Exception:
+            pass
+
+
+if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    main()

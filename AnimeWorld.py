@@ -73,7 +73,7 @@ class AnimeWorld(AnimeWebSite):
             print(f'Errore recupero episodi: {e}')
             return None
 
-        start_index = 0 if start == -1 else max(start - 1, 0)
+        start_index = 0 if start == -1 else max(start, 0)
         episodes = episodes[start_index:]
         total = len(episodes)
 
