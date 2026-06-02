@@ -37,13 +37,4 @@ python anime.py http://example.com
 5. Run `python anime.py` to start using the script
 6. To update current anime you can run `python updater.py`.
 
-## Future implementations
-
-* Support for other sites
-* Support for multiple simultaneous downloads
-* Support for receiving as input a file with various anime urls to download
-* Search for anime within the script
-* Possibility to customise the output folder
-
-
 

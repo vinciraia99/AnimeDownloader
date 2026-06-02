@@ -6,7 +6,7 @@
 
 Questo script in Python permette il download automatico di episodi di un anime dai seguenti siti:
 
-* AnimeWorld
+* AnimeWorld - Ringrazio il dev della libreria [AnimeWorld-API](https://github.com/MainKronos/AnimeWorld-API)
 
 ## Usage
 
@@ -33,11 +33,3 @@ python anime.py http://example.com
 3. Installate requirements.txt file incluso nel repo: `pip install -r requirements.txt`.
 4. Lanciare `python anime.py` per iniziare ad usare lo script
 5. Per aggiornare anime in corso potete lanciare `python updater.py`
-
-## Future implementazioni
-
-* Supporto ad altri siti
-* Supporto per più download contemporaneamente
-* Supporto a ricevere in input un file con vari url di anime da scaricare
-* Ricerca di anime all'interno dello script
-* Possiblità di customizzare la cartella di output
