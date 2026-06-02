@@ -29,16 +29,6 @@ def cleanProgram(anime):
     print("Chiudo il programma")
     exit(0)
 
-
-def setChromeOption():
-    options = OptionChrome()
-    options.add_argument('--headless')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--disable-logging')
-    options.add_argument('--no-sandbox')
-    options.add_experimental_option("excludeSwitches", ["enable-logging"])
-    return options
-
 def getAnimeClass(url: string):
     if "animeworld" in url:
         return AnimeWorld(url)
