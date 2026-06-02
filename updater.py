@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import multiprocessing
 import os
 import re
@@ -14,6 +15,19 @@ warnings.filterwarnings("ignore")
 
 MARKER_FILES = (".url", ".incomplete", "url")
 EPISODE_REGEX = re.compile(r"_Ep_(\d+)", re.IGNORECASE)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Aggiorna gli anime già tracciati")
+    parser.add_argument(
+        "--max-workers",
+        "--max-worker",
+        dest="max_workers",
+        type=int,
+        default=12,
+        help="Numero massimo di download paralleli (default: 12)",
+    )
+    return parser.parse_args()
 
 
 def get_mp4_files(dirname: str) -> list[str]:
@@ -176,7 +190,7 @@ def filter_missing_episodes(episode_list: list[dict], downloaded_numbers: list[i
     return filtered
 
 
-def process_anime(tracked: dict, index: int, total: int):
+def process_anime(tracked: dict, index: int, total: int, max_workers: int):
     print(
         "== Verifico se ci sono nuovi episodi per l'anime "
         + str(index)
@@ -205,7 +219,7 @@ def process_anime(tracked: dict, index: int, total: int):
         episode_list = []
 
     if len(episode_list) > 0:
-        anime.downloadAnime(0, episode_list)
+        anime.downloadAnime(0, episode_list, max_workers=max_workers)
         if anime.airing is False and delete_airing(tracked["name"]):
             print("L'anime " + anime.name + " non è più in corso")
         return anime.name
@@ -219,6 +233,7 @@ def process_anime(tracked: dict, index: int, total: int):
 
 
 def main():
+    args = parse_args()
     updated = []
     anime = None
 
@@ -227,7 +242,7 @@ def main():
 
         for animeindex, tracked in enumerate(tracked_list, start=1):
             try:
-                anime_name = process_anime(tracked, animeindex, len(tracked_list))
+                anime_name = process_anime(tracked, animeindex, len(tracked_list), args.max_workers)
                 if anime_name:
                     updated.append(anime_name)
             except KeyboardInterrupt:
