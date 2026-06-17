@@ -52,7 +52,6 @@ def _download_one_worker(ep: Dict, download_dir_str: str, queue_result, timeout:
     tmp = download_dir / f"{name}.tmp"
 
     try:
-        # HEAD request: controlla Range support e dimensione totale
         head = requests.head(
             url,
             timeout=10,
@@ -68,7 +67,6 @@ def _download_one_worker(ep: Dict, download_dir_str: str, queue_result, timeout:
         queue_result.put(("start", name, total_bytes))
 
         if supports_range:
-            # Prealloca il file su disco
             with open(tmp, "wb") as f:
                 f.seek(total_bytes - 1)
                 f.write(b"\0")
@@ -95,7 +93,6 @@ def _download_one_worker(ep: Dict, download_dir_str: str, queue_result, timeout:
                 t.join()
 
         else:
-            # Fallback: connessione singola tradizionale
             with requests.get(
                 url,
                 stream=True,
