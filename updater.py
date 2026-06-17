@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import multiprocessing
-import os
 import re
 import traceback
 import warnings
@@ -221,13 +220,13 @@ def process_anime(tracked: dict, index: int, total: int, max_workers: int):
     if len(episode_list) > 0:
         anime.downloadAnime(0, episode_list, max_workers=max_workers)
         if anime.airing is False and delete_airing(tracked["name"]):
-            print("L'anime " + anime.name + " non è più in corso")
+            customPrint("L'anime " + anime.name + " non è più in corso")
         return anime.name
 
     print("Non ci sono nuovi episodi")
 
     if anime.airing is False and delete_airing(tracked["name"]):
-        print("L'anime " + anime.name + " non è più in corso")
+        customPrint("L'anime " + anime.name + " non è più in corso")
 
     return None
 
