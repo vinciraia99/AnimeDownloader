@@ -56,6 +56,34 @@ class AniListAPI:
 
         return None
 
+    def _is_new_series(self, anime_id: int) -> bool:
+        info = self._get_anime_info(anime_id)
+        title = info.get("title", {}).get("romaji", "")
+        if not title:
+            title = ""
+
+        if ":" in title and "Season" not in title and not re.search(r'\d+', title):
+            return True
+
+        return False
+
+    def _has_prequel(self, anime_id: int) -> bool:
+        info = self._get_anime_info(anime_id)
+        relations = info.get("relations", {}).get("edges", [])
+        return any(edge.get("relationType") == "PREQUEL" for edge in relations)
+
+    def _is_alternative_version(self, anime_id: int) -> bool:
+        info = self._get_anime_info(anime_id)
+        title = info.get("title", {}).get("romaji", "")
+        if not title:
+            title = ""
+
+        alternative_patterns = ['√', '[A]', ': A', ' Alternative', 'Reboot']
+        for pattern in alternative_patterns:
+            if pattern in title:
+                return True
+        return False
+
     def _get_all_sequels(self, first_id: int) -> list:
         sequels = []
         current_id = first_id
@@ -69,7 +97,10 @@ class AniListAPI:
                 if edge.get("relationType") == "SEQUEL":
                     sequel_id = edge.get("node", {}).get("id")
                     sequel_title = edge.get("node", {}).get("title", {}).get("romaji", "")
-                    sequels.append((sequel_id, sequel_title))
+
+                    if not self._is_alternative_version(sequel_id):
+                        sequels.append((sequel_id, sequel_title))
+
                     current_id = sequel_id
                     found_next = True
                     break
@@ -95,6 +126,12 @@ class AniListAPI:
                 return current_id
 
     def _find_season_by_position(self, first_id: int, target_id: int) -> int:
+        if self._is_new_series(target_id):
+            return 1
+
+        if self._is_alternative_version(target_id) and self._has_prequel(target_id):
+            return 2
+
         sequels = self._get_all_sequels(first_id)
 
         if not sequels:
