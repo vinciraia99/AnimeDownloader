@@ -13,7 +13,10 @@ from utility import *
 warnings.filterwarnings("ignore")
 
 MARKER_FILES = (".url", ".incomplete", "url")
-EPISODE_REGEX = re.compile(r"(?:_Ep_(\d+))|(?:_S\d+EP(\d+))", re.IGNORECASE)
+EPISODE_REGEX = re.compile(
+    r"^(?:.+ - S\d{2}E(\d{2}) - .+\.mp4|.+[_-]Ep[_-](\d+).+\.mp4)$",
+    re.IGNORECASE,
+)
 
 
 def parse_args():
@@ -52,11 +55,14 @@ def get_mp4_files(dirname: str) -> list[str]:
 
 
 def extract_episode_number(filename: str) -> Optional[int]:
-    match = EPISODE_REGEX.search(filename)
+    match = EPISODE_REGEX.match(filename)
     if not match:
         return None
 
     episode = match.group(1) or match.group(2)
+    if episode is None:
+        return None
+
     return int(episode)
 
 
@@ -160,13 +166,15 @@ def build_tracked_list() -> list[dict]:
                 print(f"[WARN] URL non trovata per: {dirname}")
                 continue
 
-            tracked.append({
-                "name": dirname,
-                "url": url,
-                "downloaded_numbers": get_downloaded_episode_numbers(dirname),
-                "last_episode": get_last_downloaded_episode(dirname),
-                "is_complete": is_sequence_complete(dirname),
-            })
+            tracked.append(
+                {
+                    "name": dirname,
+                    "url": url,
+                    "downloaded_numbers": get_downloaded_episode_numbers(dirname),
+                    "last_episode": get_last_downloaded_episode(dirname),
+                    "is_complete": is_sequence_complete(dirname),
+                }
+            )
         except Exception:
             print(f"[ERR] Impossibile costruire i dati per: {dirname}")
             print(traceback.format_exc())

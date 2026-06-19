@@ -66,7 +66,8 @@ class AnimeWorld(AnimeWebSite):
             api = AnimeSeasonResolver()
             self.season_number = api.get_season(url_anilist, url_mal)
         if self.season_number:
-            return re.sub(r'[_-]Ep[_-](\d+)', lambda m: f'_{self.season_number}EP{m.group(1)}', name)
+            return re.sub(r'[_-]Ep[_-](\d+)[_-]((?:SUB_)?ITA)',
+                          lambda m: f' - {self.season_number}E{m.group(1).zfill(2)} - {m.group(2)}', name)
         return name
 
     def getEpisodeList(self, start: int = -1) -> Optional[List[Dict]]:
@@ -121,7 +122,7 @@ class AnimeWorld(AnimeWebSite):
         with tqdm(total=total, desc='Analisi episodi', unit='ep', dynamic_ncols=True) as pbar:
             for ep in episodes:
                 link = self._get_best_link(ep)
-                name = self._name_from_url(link) if link else f'Episodio_{ep.number}.mp4'
+                name = self._name_from_url(link) if link else f'Ep_{ep.number}.mp4'
                 name = self._normalize_episode_name(name)
                 final_list.append({
                     'episode': ep,
