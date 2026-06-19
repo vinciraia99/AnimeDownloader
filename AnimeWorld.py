@@ -5,7 +5,7 @@ import re
 from bs4 import BeautifulSoup
 import animeworld as aw
 from tqdm import tqdm
-from anilist_api import AniListAPI
+from anime_season_resolver import AnimeSeasonResolver
 
 from AnimeWebSite import AnimeWebSite
 
@@ -47,7 +47,17 @@ class AnimeWorld(AnimeWebSite):
         element = soup.find('a', attrs={'data-tippy-content': 'Scheda AniList'})
         if element and element.get('href'):
             return element['href']
-        return None
+        return ""
+
+    def _get_mal_url_from_html(self, html: bytes) -> str | None:
+        soup = BeautifulSoup(html, 'html.parser')
+        element = soup.find('a', id='mal-button')
+        if element and element.get('href'):
+            return element['href']
+        element = soup.find('a', attrs={'data-tippy-content': 'Scheda MyAnimeList'})
+        if element and element.get('href'):
+            return element['href']
+        return ""
 
     def _normalize_episode_name(self, name: str) -> str:
         if self.season_number:
@@ -76,8 +86,9 @@ class AnimeWorld(AnimeWebSite):
             self.name = re.sub(r'\.[A-Za-z0-9]{2,8}$', '', slug).replace('-', ' ').title()
 
         url_anilist = self._get_anilist_url_from_html(self._anime.html)
-        api = AniListAPI()
-        self.season_number = api.get_season(url_anilist)
+        url_mal = self._get_mal_url_from_html(self._anime.html)
+        api = AnimeSeasonResolver()
+        self.season_number = api.get_season(url_anilist,url_mal)
 
         try:
             info = self._anime.getInfo()

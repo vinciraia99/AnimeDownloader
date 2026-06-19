@@ -13,7 +13,7 @@ from utility import *
 warnings.filterwarnings("ignore")
 
 MARKER_FILES = (".url", ".incomplete", "url")
-EPISODE_REGEX = re.compile(r"_Ep_(\d+)", re.IGNORECASE)
+EPISODE_REGEX = re.compile(r"(?:_Ep_(\d+))|(?:_S\d+EP(\d+))", re.IGNORECASE)
 
 
 def parse_args():
@@ -55,7 +55,9 @@ def extract_episode_number(filename: str) -> Optional[int]:
     match = EPISODE_REGEX.search(filename)
     if not match:
         return None
-    return int(match.group(1))
+
+    episode = match.group(1) or match.group(2)
+    return int(episode)
 
 
 def get_downloaded_episode_numbers(dirname: str) -> list[int]:
