@@ -60,6 +60,11 @@ class AnimeWorld(AnimeWebSite):
         return ""
 
     def _normalize_episode_name(self, name: str) -> str:
+        if self.season_number == "" and "movie" not in name.lower():
+            url_anilist = self._get_anilist_url_from_html(self._anime.html)
+            url_mal = self._get_mal_url_from_html(self._anime.html)
+            api = AnimeSeasonResolver()
+            self.season_number = api.get_season(url_anilist, url_mal)
         if self.season_number:
             return re.sub(r'[_-]Ep[_-](\d+)', lambda m: f'_{self.season_number}EP{m.group(1)}', name)
         return name
@@ -85,11 +90,6 @@ class AnimeWorld(AnimeWebSite):
             slug = path.rstrip('/').split('/')[-1]
             self.name = re.sub(r'\.[A-Za-z0-9]{2,8}$', '', slug).replace('-', ' ').title()
 
-        url_anilist = self._get_anilist_url_from_html(self._anime.html)
-        url_mal = self._get_mal_url_from_html(self._anime.html)
-        api = AnimeSeasonResolver()
-        self.season_number = api.get_season(url_anilist,url_mal)
-
         try:
             info = self._anime.getInfo()
             stato = str(info.get('Stato', '')).lower()
@@ -114,7 +114,7 @@ class AnimeWorld(AnimeWebSite):
             return []
 
         print(f'\nAnime:   {self.name}')
-        print(f"Airing:  {'Sì (in corso)' if self.airing else 'No (completo)'}")
+        print(f"In corso:  {'Sì' if self.airing else 'No'}")
         print(f'Episodi: {total}\n')
 
         final_list = []
