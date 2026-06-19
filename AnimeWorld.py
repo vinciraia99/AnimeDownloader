@@ -121,7 +121,7 @@ class AnimeWorld(AnimeWebSite):
         with tqdm(total=total, desc='Analisi episodi', unit='ep', dynamic_ncols=True) as pbar:
             for ep in episodes:
                 link = self._get_best_link(ep)
-                name = self._name_from_url(link) if link else f'Episodio_{ep.number}.mp4'
+                name = self._name_from_url(link) if link else f'Ep_{ep.number}.mp4'
                 name = self._normalize_episode_name(name)
                 final_list.append({
                     'episode': ep,
