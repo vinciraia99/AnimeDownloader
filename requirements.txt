@@ -2,3 +2,4 @@ animeworld
 progressbar2
 tqdm
 requests
+beautifulsoup4

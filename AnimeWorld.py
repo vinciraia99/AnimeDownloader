@@ -2,14 +2,17 @@ from __future__ import annotations
 
 from typing import List, Dict, Optional
 import re
-
+from bs4 import BeautifulSoup
 import animeworld as aw
 from tqdm import tqdm
+from anime_season_resolver import AnimeSeasonResolver
 
 from AnimeWebSite import AnimeWebSite
 
 
 class AnimeWorld(AnimeWebSite):
+    season_number = ""
+
     def __init__(self, url: str):
         self._anime: Optional[aw.Anime] = None
         super().__init__(url)
@@ -35,6 +38,37 @@ class AnimeWorld(AnimeWebSite):
         if not filename.lower().endswith('.mp4'):
             filename += '.mp4'
         return filename
+
+    def _get_anilist_url_from_html(self, html: bytes) -> str | None:
+        soup = BeautifulSoup(html, 'html.parser')
+        element = soup.find('a', id='anilist-button')
+        if element and element.get('href'):
+            return element['href']
+        element = soup.find('a', attrs={'data-tippy-content': 'Scheda AniList'})
+        if element and element.get('href'):
+            return element['href']
+        return ""
+
+    def _get_mal_url_from_html(self, html: bytes) -> str | None:
+        soup = BeautifulSoup(html, 'html.parser')
+        element = soup.find('a', id='mal-button')
+        if element and element.get('href'):
+            return element['href']
+        element = soup.find('a', attrs={'data-tippy-content': 'Scheda MyAnimeList'})
+        if element and element.get('href'):
+            return element['href']
+        return ""
+
+    def _normalize_episode_name(self, name: str) -> str:
+        if self.season_number == "" and "movie" not in name.lower():
+            url_anilist = self._get_anilist_url_from_html(self._anime.html)
+            url_mal = self._get_mal_url_from_html(self._anime.html)
+            api = AnimeSeasonResolver()
+            self.season_number = api.get_season(url_anilist, url_mal)
+        if self.season_number:
+            return re.sub(r'[_-]Ep[_-](\d+)[_-]((?:SUB_)?ITA)',
+                          lambda m: f' - {self.season_number}E{m.group(1).zfill(2)} - {m.group(2)}', name)
+        return name
 
     def getEpisodeList(self, start: int = -1) -> Optional[List[Dict]]:
         path = self._parse_url()
@@ -81,14 +115,15 @@ class AnimeWorld(AnimeWebSite):
             return []
 
         print(f'\nAnime:   {self.name}')
-        print(f"Airing:  {'Sì (in corso)' if self.airing else 'No (completo)'}")
+        print(f"In corso:  {'Sì' if self.airing else 'No'}")
         print(f'Episodi: {total}\n')
 
         final_list = []
         with tqdm(total=total, desc='Analisi episodi', unit='ep', dynamic_ncols=True) as pbar:
             for ep in episodes:
                 link = self._get_best_link(ep)
-                name = self._name_from_url(link) if link else f'Episodio_{ep.number}.mp4'
+                name = self._name_from_url(link) if link else f'Ep_{ep.number}.mp4'
+                name = self._normalize_episode_name(name)
                 final_list.append({
                     'episode': ep,
                     'number': str(ep.number),
@@ -98,7 +133,6 @@ class AnimeWorld(AnimeWebSite):
                 pbar.set_postfix_str(name[:50])
                 pbar.update(1)
 
-        print()
         for ep in final_list:
             tqdm.write(f"  [EP {ep['number']:>3}] {ep['name']}")
 

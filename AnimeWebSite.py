@@ -14,9 +14,37 @@ from tqdm import tqdm
 
 
 CHUNK_SIZE = 512 * 1024
+NUM_SEGMENTS = 8
 
 
-def _download_one_worker(ep: Dict, download_dir_str: str, queue_result, timeout: int = 30) -> None:
+def _download_segment(
+    url: str,
+    start: int,
+    end: int,
+    tmp_path: str,
+    lock: threading.Lock,
+    advance_cb,
+    timeout: int = 60,
+) -> None:
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Range": f"bytes={start}-{end}",
+    }
+    with requests.get(url, headers=headers, stream=True, timeout=(10, timeout)) as r:
+        r.raise_for_status()
+        written = start
+        for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+            if not chunk:
+                continue
+            with lock:
+                with open(tmp_path, "r+b") as f:
+                    f.seek(written)
+                    f.write(chunk)
+            written += len(chunk)
+            advance_cb(len(chunk))
+
+
+def _download_one_worker(ep: Dict, download_dir_str: str, queue_result, timeout: int = 60) -> None:
     name = ep["name"]
     url = ep["url"]
     download_dir = Path(download_dir_str)
@@ -24,23 +52,60 @@ def _download_one_worker(ep: Dict, download_dir_str: str, queue_result, timeout:
     tmp = download_dir / f"{name}.tmp"
 
     try:
-        with requests.get(
+        head = requests.head(
             url,
-            stream=True,
-            timeout=(10, timeout),
+            timeout=10,
             headers={"User-Agent": "Mozilla/5.0"},
-        ) as r:
-            r.raise_for_status()
+            allow_redirects=True,
+        )
+        total_bytes = int(head.headers.get("content-length", 0) or 0)
+        supports_range = (
+            head.headers.get("Accept-Ranges", "none").lower() == "bytes"
+            and total_bytes > 0
+        )
 
-            total_bytes = int(r.headers.get("content-length", 0) or 0)
-            queue_result.put(("start", name, total_bytes))
+        queue_result.put(("start", name, total_bytes))
 
+        if supports_range:
             with open(tmp, "wb") as f:
-                for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
-                    if not chunk:
-                        continue
-                    f.write(chunk)
-                    queue_result.put(("advance", name, len(chunk)))
+                f.seek(total_bytes - 1)
+                f.write(b"\0")
+
+            lock = threading.Lock()
+
+            def advance_cb(n: int):
+                queue_result.put(("advance", name, n))
+
+            seg_size = total_bytes // NUM_SEGMENTS
+            threads = []
+            for i in range(NUM_SEGMENTS):
+                seg_start = i * seg_size
+                seg_end = (seg_start + seg_size - 1) if i < NUM_SEGMENTS - 1 else (total_bytes - 1)
+                t = threading.Thread(
+                    target=_download_segment,
+                    args=(url, seg_start, seg_end, str(tmp), lock, advance_cb, timeout),
+                    daemon=True,
+                )
+                threads.append(t)
+                t.start()
+
+            for t in threads:
+                t.join()
+
+        else:
+            with requests.get(
+                url,
+                stream=True,
+                timeout=(10, timeout),
+                headers={"User-Agent": "Mozilla/5.0"},
+            ) as r:
+                r.raise_for_status()
+                with open(tmp, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+                        if not chunk:
+                            continue
+                        f.write(chunk)
+                        queue_result.put(("advance", name, len(chunk)))
 
         tmp.replace(dest)
         queue_result.put(("done", name, None))

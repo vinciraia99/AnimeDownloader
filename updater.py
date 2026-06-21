@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import multiprocessing
-import os
 import re
 import traceback
 import warnings
@@ -14,7 +13,10 @@ from utility import *
 warnings.filterwarnings("ignore")
 
 MARKER_FILES = (".url", ".incomplete", "url")
-EPISODE_REGEX = re.compile(r"_Ep_(\d+)", re.IGNORECASE)
+EPISODE_REGEX = re.compile(
+    r"^(?:.+ - S\d{2}E(\d{2}) - .+\.mp4|.+[_-]Ep[_-](\d+).+\.mp4)$",
+    re.IGNORECASE,
+)
 
 
 def parse_args():
@@ -53,10 +55,15 @@ def get_mp4_files(dirname: str) -> list[str]:
 
 
 def extract_episode_number(filename: str) -> Optional[int]:
-    match = EPISODE_REGEX.search(filename)
+    match = EPISODE_REGEX.match(filename)
     if not match:
         return None
-    return int(match.group(1))
+
+    episode = match.group(1) or match.group(2)
+    if episode is None:
+        return None
+
+    return int(episode)
 
 
 def get_downloaded_episode_numbers(dirname: str) -> list[int]:
@@ -159,13 +166,15 @@ def build_tracked_list() -> list[dict]:
                 print(f"[WARN] URL non trovata per: {dirname}")
                 continue
 
-            tracked.append({
-                "name": dirname,
-                "url": url,
-                "downloaded_numbers": get_downloaded_episode_numbers(dirname),
-                "last_episode": get_last_downloaded_episode(dirname),
-                "is_complete": is_sequence_complete(dirname),
-            })
+            tracked.append(
+                {
+                    "name": dirname,
+                    "url": url,
+                    "downloaded_numbers": get_downloaded_episode_numbers(dirname),
+                    "last_episode": get_last_downloaded_episode(dirname),
+                    "is_complete": is_sequence_complete(dirname),
+                }
+            )
         except Exception:
             print(f"[ERR] Impossibile costruire i dati per: {dirname}")
             print(traceback.format_exc())
@@ -221,13 +230,13 @@ def process_anime(tracked: dict, index: int, total: int, max_workers: int):
     if len(episode_list) > 0:
         anime.downloadAnime(0, episode_list, max_workers=max_workers)
         if anime.airing is False and delete_airing(tracked["name"]):
-            print("L'anime " + anime.name + " non è più in corso")
+            customPrint("L'anime " + anime.name + " non è più in corso")
         return anime.name
 
     print("Non ci sono nuovi episodi")
 
     if anime.airing is False and delete_airing(tracked["name"]):
-        print("L'anime " + anime.name + " non è più in corso")
+        customPrint("L'anime " + anime.name + " non è più in corso")
 
     return None
 
