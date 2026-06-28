@@ -208,7 +208,6 @@ class AnimeWebSite:
 
         def _sigint_handler(sig, frame):
             stop_event.set()
-            tqdm.write("\n[!] Interruzione richiesta, arresto immediato dei download...")
 
         original_sigint = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, _sigint_handler)

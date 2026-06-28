@@ -43,7 +43,9 @@ class AniListAPI:
                 title {
                     romaji
                     english
+                    native
                 }
+                synonyms
                 relations {
                     edges {
                         relationType
@@ -51,6 +53,8 @@ class AniListAPI:
                             id
                             title {
                                 romaji
+                                english
+                                native
                             }
                         }
                     }
@@ -68,30 +72,64 @@ class AniListAPI:
 
         return media
 
+    def _normalize_title(self, title: str) -> str:
+        if not title:
+            return ""
+
+        title = title.strip()
+
+        title = re.sub(r"\bpart\s*\d+\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bcour\s*\d+\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bmovie\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bova\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bona\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bspecial\b", "", title, flags=re.IGNORECASE)
+
+        title = re.sub(r"\s+", " ", title).strip()
+        return title
+
+    def _extract_season_number_from_text(self, title: str) -> int | None:
+        if not title:
+            return None
+
+        clean_title = self._normalize_title(title)
+
+        explicit_patterns = [
+            r"\bseason\s*(\d+)\b",
+            r"\b(\d+)(?:st|nd|rd|th)?\s*season\b",
+            r"\b(\d+)(?:st|nd|rd|th)\b",
+            r"\bs(\d{1,2})\b",
+        ]
+
+        for pattern in explicit_patterns:
+            match = re.search(pattern, clean_title, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+
+        return None
+
     def _extract_season_from_title(self, anime_id: int) -> int | None:
         info = self._get_anime_info(anime_id)
         title_data = info.get("title") or {}
+        synonyms = info.get("synonyms") or []
 
         titles = [
             title_data.get("romaji") or "",
-            title_data.get("english") or ""
+            title_data.get("english") or "",
+            title_data.get("native") or "",
         ]
+
+        for synonym in synonyms:
+            if isinstance(synonym, str):
+                titles.append(synonym)
 
         for title in titles:
             if not title:
                 continue
 
-            match = re.search(r"season\s*(\d+)", title, re.IGNORECASE)
-            if match:
-                return int(match.group(1))
-
-            match = re.search(r"(\d+)(?:st|nd|rd|th)?\s*season", title, re.IGNORECASE)
-            if match:
-                return int(match.group(1))
-
-            match = re.search(r"\b(\d+)\b", title)
-            if match:
-                return int(match.group(1))
+            season = self._extract_season_number_from_text(title)
+            if season is not None:
+                return season
 
         return None
 
@@ -102,14 +140,34 @@ class AniListAPI:
 
     def _is_alternative_version(self, anime_id: int) -> bool:
         info = self._get_anime_info(anime_id)
-        title = ((info.get("title") or {}).get("romaji")) or ""
+        title_data = info.get("title") or {}
+        titles = [
+            title_data.get("romaji") or "",
+            title_data.get("english") or "",
+            title_data.get("native") or "",
+        ]
         patterns = ["√", "[A]", ": A", " Alternative", "Reboot"]
-        return any(pattern in title for pattern in patterns)
+
+        for title in titles:
+            if any(pattern in title for pattern in patterns):
+                return True
+
+        return False
 
     def _is_new_series(self, anime_id: int) -> bool:
         info = self._get_anime_info(anime_id)
-        title = ((info.get("title") or {}).get("romaji")) or ""
-        return ":" in title and "Season" not in title and not re.search(r"\d+", title)
+        title_data = info.get("title") or {}
+        titles = [
+            title_data.get("romaji") or "",
+            title_data.get("english") or "",
+        ]
+
+        for title in titles:
+            normalized = self._normalize_title(title)
+            if ":" in normalized and "Season" not in normalized and not re.search(r"\b\d+\b", normalized):
+                return True
+
+        return False
 
     def _find_first_anime(self, anime_id: int) -> int:
         current_id = anime_id
@@ -152,7 +210,13 @@ class AniListAPI:
                 if edge.get("relationType") == "SEQUEL":
                     node = edge.get("node") or {}
                     sequel_id = node.get("id")
-                    sequel_title = ((node.get("title") or {}).get("romaji")) or ""
+                    node_title = node.get("title") or {}
+                    sequel_title = (
+                        node_title.get("romaji")
+                        or node_title.get("english")
+                        or node_title.get("native")
+                        or ""
+                    )
                     break
 
             if not sequel_id:
@@ -241,6 +305,42 @@ class JikanAPI:
 
         return relations
 
+    def _normalize_title(self, title: str) -> str:
+        if not title:
+            return ""
+
+        title = title.strip()
+
+        title = re.sub(r"\bpart\s*\d+\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bcour\s*\d+\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bmovie\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bova\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bona\b", "", title, flags=re.IGNORECASE)
+        title = re.sub(r"\bspecial\b", "", title, flags=re.IGNORECASE)
+
+        title = re.sub(r"\s+", " ", title).strip()
+        return title
+
+    def _extract_season_number_from_text(self, title: str) -> int | None:
+        if not title:
+            return None
+
+        clean_title = self._normalize_title(title)
+
+        explicit_patterns = [
+            r"\bseason\s*(\d+)\b",
+            r"\b(\d+)(?:st|nd|rd|th)?\s*season\b",
+            r"\b(\d+)(?:st|nd|rd|th)\b",
+            r"\bs(\d{1,2})\b",
+        ]
+
+        for pattern in explicit_patterns:
+            match = re.search(pattern, clean_title, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+
+        return None
+
     def _extract_season_from_title(self, anime_id: int) -> int | None:
         info = self._get_anime_info(anime_id)
         titles = [
@@ -253,17 +353,9 @@ class JikanAPI:
             if not title:
                 continue
 
-            match = re.search(r"season\s*(\d+)", title, re.IGNORECASE)
-            if match:
-                return int(match.group(1))
-
-            match = re.search(r"(\d+)(?:st|nd|rd|th)?\s*season", title, re.IGNORECASE)
-            if match:
-                return int(match.group(1))
-
-            match = re.search(r"\b(\d+)\b", title)
-            if match:
-                return int(match.group(1))
+            season = self._extract_season_number_from_text(title)
+            if season is not None:
+                return season
 
         return None
 
@@ -297,7 +389,8 @@ class JikanAPI:
         ]
 
         for title in titles:
-            if ":" in title and "Season" not in title and not re.search(r"\d+", title):
+            normalized = self._normalize_title(title)
+            if ":" in normalized and "Season" not in normalized and not re.search(r"\b\d+\b", normalized):
                 return True
 
         return False
@@ -395,7 +488,7 @@ class AnimeSeasonResolver:
 
     def get_season(self, anilist_url: str, mal_url: str) -> str:
         try:
-           return self._anilist.get_season(anilist_url)
+            return self._anilist.get_season(anilist_url)
         except Exception:
             pass
 
