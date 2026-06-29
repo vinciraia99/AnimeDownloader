@@ -8,115 +8,309 @@ import signal
 import multiprocessing as mp
 from multiprocessing import Process, Queue
 import queue as queue_mod
+import time
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from tqdm import tqdm
 
 
 CHUNK_SIZE = 512 * 1024
 NUM_SEGMENTS = 8
 
+CONNECT_TIMEOUT = 10
+READ_TIMEOUT = 60
+
+MAX_RETRIES_PER_EPISODE = 20
+INITIAL_RETRY_DELAY = 2.0
+MAX_RETRY_DELAY = 60.0
+
+USER_AGENT = "Mozilla/5.0"
+
+
+def _build_session() -> requests.Session:
+    session = requests.Session()
+
+    retry = Retry(
+        total=3,
+        connect=3,
+        read=0,
+        status=3,
+        backoff_factor=1,
+        status_forcelist=[500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET"],
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=100, pool_maxsize=100)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+
+    session.headers.update({"User-Agent": USER_AGENT})
+    return session
+
+
+def _is_retryable_exception(exc: Exception) -> bool:
+    if isinstance(exc, requests.exceptions.Timeout):
+        return True
+
+    if isinstance(exc, requests.exceptions.ConnectionError):
+        msg = str(exc).lower()
+        if "read timed out" in msg or "timed out" in msg:
+            return True
+        return True
+
+    if isinstance(exc, requests.exceptions.RequestException):
+        return True
+
+    return False
+
+
+def _compute_retry_delay(attempt: int) -> float:
+    delay = INITIAL_RETRY_DELAY * (2 ** (attempt - 1))
+    return min(delay, MAX_RETRY_DELAY)
+
+
+def _safe_unlink(path: Path) -> None:
+    if path.exists():
+        try:
+            path.unlink()
+        except Exception:
+            pass
+
+
+def _prepare_tmp_file(tmp_path: Path, total_bytes: int) -> None:
+    with open(tmp_path, "wb") as f:
+        if total_bytes > 0:
+            f.seek(total_bytes - 1)
+            f.write(b"\0")
+
 
 def _download_segment(
+    session: requests.Session,
     url: str,
     start: int,
     end: int,
     tmp_path: str,
-    lock: threading.Lock,
+    file_lock: threading.Lock,
+    progress_lock: threading.Lock,
+    shared_progress: Dict[str, int],
     advance_cb,
-    timeout: int = 60,
+    stop_flag: threading.Event,
+    timeout: int,
 ) -> None:
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Range": f"bytes={start}-{end}",
-    }
-    with requests.get(url, headers=headers, stream=True, timeout=(10, timeout)) as r:
+    headers = {"Range": f"bytes={start}-{end}"}
+    local_written = start
+
+    with session.get(
+        url,
+        headers=headers,
+        stream=True,
+        timeout=(CONNECT_TIMEOUT, timeout),
+    ) as r:
         r.raise_for_status()
-        written = start
+
         for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+            if stop_flag.is_set():
+                return
+
             if not chunk:
                 continue
-            with lock:
+
+            with file_lock:
                 with open(tmp_path, "r+b") as f:
-                    f.seek(written)
+                    f.seek(local_written)
                     f.write(chunk)
-            written += len(chunk)
+
+            local_written += len(chunk)
+
+            with progress_lock:
+                shared_progress["bytes"] += len(chunk)
+
             advance_cb(len(chunk))
 
 
-def _download_one_worker(ep: Dict, download_dir_str: str, queue_result, timeout: int = 60) -> None:
+def _download_single_stream(
+    session: requests.Session,
+    url: str,
+    tmp: Path,
+    queue_result,
+    name: str,
+    timeout: int,
+) -> None:
+    with session.get(
+        url,
+        stream=True,
+        timeout=(CONNECT_TIMEOUT, timeout),
+    ) as r:
+        r.raise_for_status()
+
+        with open(tmp, "wb") as f:
+            for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+                if not chunk:
+                    continue
+                f.write(chunk)
+                queue_result.put(("advance", name, len(chunk)))
+
+
+def _download_segmented(
+    session: requests.Session,
+    url: str,
+    tmp: Path,
+    total_bytes: int,
+    queue_result,
+    name: str,
+    timeout: int,
+) -> None:
+    _prepare_tmp_file(tmp, total_bytes)
+
+    file_lock = threading.Lock()
+    progress_lock = threading.Lock()
+    stop_flag = threading.Event()
+    segment_errors: List[Exception] = []
+    error_lock = threading.Lock()
+    shared_progress = {"bytes": 0}
+
+    def advance_cb(n: int):
+        queue_result.put(("advance", name, n))
+
+    def run_segment(seg_start: int, seg_end: int):
+        try:
+            _download_segment(
+                session=session,
+                url=url,
+                start=seg_start,
+                end=seg_end,
+                tmp_path=str(tmp),
+                file_lock=file_lock,
+                progress_lock=progress_lock,
+                shared_progress=shared_progress,
+                advance_cb=advance_cb,
+                stop_flag=stop_flag,
+                timeout=timeout,
+            )
+        except Exception as e:
+            stop_flag.set()
+            with error_lock:
+                segment_errors.append(e)
+
+    seg_size = total_bytes // NUM_SEGMENTS
+    threads: List[threading.Thread] = []
+
+    for i in range(NUM_SEGMENTS):
+        seg_start = i * seg_size
+        seg_end = (seg_start + seg_size - 1) if i < NUM_SEGMENTS - 1 else (total_bytes - 1)
+
+        t = threading.Thread(
+            target=run_segment,
+            args=(seg_start, seg_end),
+            daemon=True,
+        )
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+    if segment_errors:
+        raise segment_errors[0]
+
+    final_size = tmp.stat().st_size if tmp.exists() else 0
+    if final_size != total_bytes:
+        raise IOError(f"File temporaneo incompleto: attesi {total_bytes} byte, trovati {final_size}")
+
+
+def _download_one_worker(
+    ep: Dict,
+    download_dir_str: str,
+    queue_result,
+    timeout: int = READ_TIMEOUT,
+    max_retries: int = MAX_RETRIES_PER_EPISODE,
+) -> None:
     name = ep["name"]
     url = ep["url"]
     download_dir = Path(download_dir_str)
     dest = download_dir / name
     tmp = download_dir / f"{name}.tmp"
 
+    session = _build_session()
+
     try:
-        head = requests.head(
-            url,
-            timeout=10,
-            headers={"User-Agent": "Mozilla/5.0"},
-            allow_redirects=True,
-        )
-        total_bytes = int(head.headers.get("content-length", 0) or 0)
-        supports_range = (
-            head.headers.get("Accept-Ranges", "none").lower() == "bytes"
-            and total_bytes > 0
-        )
+        for attempt in range(1, max_retries + 1):
+            attempt_started = False
 
-        queue_result.put(("start", name, total_bytes))
+            try:
+                _safe_unlink(tmp)
 
-        if supports_range:
-            with open(tmp, "wb") as f:
-                f.seek(total_bytes - 1)
-                f.write(b"\0")
-
-            lock = threading.Lock()
-
-            def advance_cb(n: int):
-                queue_result.put(("advance", name, n))
-
-            seg_size = total_bytes // NUM_SEGMENTS
-            threads = []
-            for i in range(NUM_SEGMENTS):
-                seg_start = i * seg_size
-                seg_end = (seg_start + seg_size - 1) if i < NUM_SEGMENTS - 1 else (total_bytes - 1)
-                t = threading.Thread(
-                    target=_download_segment,
-                    args=(url, seg_start, seg_end, str(tmp), lock, advance_cb, timeout),
-                    daemon=True,
+                head = session.head(
+                    url,
+                    timeout=(CONNECT_TIMEOUT, 15),
+                    allow_redirects=True,
                 )
-                threads.append(t)
-                t.start()
 
-            for t in threads:
-                t.join()
+                total_bytes = int(head.headers.get("content-length", 0) or 0)
+                supports_range = (
+                    head.headers.get("Accept-Ranges", "none").lower() == "bytes"
+                    and total_bytes > 0
+                )
 
-        else:
-            with requests.get(
-                url,
-                stream=True,
-                timeout=(10, timeout),
-                headers={"User-Agent": "Mozilla/5.0"},
-            ) as r:
-                r.raise_for_status()
-                with open(tmp, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
-                        if not chunk:
-                            continue
-                        f.write(chunk)
-                        queue_result.put(("advance", name, len(chunk)))
+                if attempt == 1:
+                    queue_result.put(("start", name, total_bytes))
 
-        tmp.replace(dest)
-        queue_result.put(("done", name, None))
+                queue_result.put(("retry", name, f"Tentativo {attempt}/{max_retries}"))
+
+                attempt_started = True
+
+                if supports_range:
+                    _download_segmented(
+                        session=session,
+                        url=url,
+                        tmp=tmp,
+                        total_bytes=total_bytes,
+                        queue_result=queue_result,
+                        name=name,
+                        timeout=timeout,
+                    )
+                else:
+                    _download_single_stream(
+                        session=session,
+                        url=url,
+                        tmp=tmp,
+                        queue_result=queue_result,
+                        name=name,
+                        timeout=timeout,
+                    )
+
+                tmp.replace(dest)
+                queue_result.put(("done", name, None))
+                return
+
+            except Exception as e:
+                _safe_unlink(tmp)
+
+                retryable = _is_retryable_exception(e)
+
+                if attempt >= max_retries or not retryable:
+                    raise
+
+                delay = _compute_retry_delay(attempt)
+                if attempt_started:
+                    queue_result.put(
+                        ("retry_wait", name, f"{type(e).__name__}: {e} --- nuovo tentativo tra {delay:.1f}s")
+                    )
+                time.sleep(delay)
+
+        raise RuntimeError("Retry esauriti")
 
     except Exception as e:
-        if tmp.exists():
-            try:
-                tmp.unlink()
-            except Exception:
-                pass
+        _safe_unlink(tmp)
         queue_result.put(("error", name, str(e)))
+
+    finally:
+        try:
+            session.close()
+        except Exception:
+            pass
 
 
 class AnimeWebSite:
@@ -163,11 +357,7 @@ class AnimeWebSite:
     def _cleanup_tmp_files(self, download_dir: Path, pending: List[Dict]) -> None:
         for ep in pending:
             tmp = download_dir / f"{ep['name']}.tmp"
-            if tmp.exists():
-                try:
-                    tmp.unlink()
-                except Exception:
-                    pass
+            _safe_unlink(tmp)
 
     def downloadAnime(
         self,
@@ -202,6 +392,7 @@ class AnimeWebSite:
 
         total_eps = len(pending)
         tqdm.write(f"\nScarico {total_eps} episodi in: {download_dir}")
+        tqdm.write(f"Retry per episodio: {MAX_RETRIES_PER_EPISODE}")
         tqdm.write("Ctrl+C per fermare\n")
 
         stop_event = threading.Event()
@@ -227,6 +418,7 @@ class AnimeWebSite:
 
                 while completed < total_eps:
                     alive_count = sum(1 for p in processes if p.is_alive())
+
                     while not stop_event.is_set() and started < total_eps and alive_count < max_workers:
                         ep = pending[started]
                         p = Process(target=_download_one_worker, args=(ep, download_dir_str, result_queue))
@@ -251,6 +443,9 @@ class AnimeWebSite:
 
                         elif msg_type == 'advance':
                             bytes_bar.update(int(value))
+
+                        elif msg_type == 'retry_wait':
+                            tqdm.write(f"[RETRY] {name}: {value}")
 
                         elif msg_type == 'done':
                             completed += 1
@@ -292,6 +487,7 @@ class AnimeWebSite:
                         p.join(timeout=2)
                     except Exception:
                         pass
+
             signal.signal(signal.SIGINT, original_sigint)
 
         if stop_event.is_set():

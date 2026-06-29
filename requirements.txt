@@ -2,4 +2,5 @@ animeworld
 progressbar2
 tqdm
 requests
+urllib3
 beautifulsoup4
