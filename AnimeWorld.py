@@ -25,6 +25,11 @@ class AnimeWorld(AnimeWebSite):
             return m.group(2)
         return url
 
+    def _is_anime_released(self) -> bool :
+        if self._anime.getInfo()["Stato"] == "Non rilasciato":
+            return False
+        return True
+
     def _get_best_link(self, episode) -> Optional[str]:
         if not hasattr(episode, 'links') or not episode.links:
             return None
@@ -76,14 +81,11 @@ class AnimeWorld(AnimeWebSite):
         try:
             self._anime = aw.Anime(link=path)
         except aw.Error404:
-            print('Anime non trovato (404).')
-            return None
+            raise Exception('Anime non trovato (404).')
         except aw.DeprecatedLibrary as e:
-            print(f'Libreria deprecata: {e}')
-            return None
+            raise Exception(f'Libreria deprecata: {e}')
         except Exception as e:
-            print(f'Errore creazione anime: {e}')
-            return None
+            raise Exception(f'Errore creazione anime: {e}')
 
         try:
             self.name = self._anime.getName()
@@ -138,7 +140,17 @@ class AnimeWorld(AnimeWebSite):
 
         return final_list
 
-    def downloadAnime(self, start: int = -1, listEpisodi=None, max_workers: int = 6):
+    def downloadAnime(self, start: int = -1, listEpisodi=None, max_workers: int = 6) -> bool:
+        if listEpisodi is None:
+            listEpisodi = self.getEpisodeList(start)
+
+        if not self._is_anime_released():
+            from utility import customPrint
+            customPrint("Anime non rilasciato. Aggiunto nell'update quando sará disponibile!")
+            download_dir, already_downloaded = self._create_or_check_download_dir()
+            self._create_incomplete_file(download_dir)
+            return False
+
         result = super().downloadAnime(
             start=start,
             listEpisodi=listEpisodi,

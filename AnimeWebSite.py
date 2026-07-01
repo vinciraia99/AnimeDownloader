@@ -365,9 +365,6 @@ class AnimeWebSite:
         listEpisodi: Optional[List[Dict]] = None,
         max_workers: int = 9,
     ):
-        if listEpisodi is None:
-            listEpisodi = self.getEpisodeList(start)
-
         if not listEpisodi:
             raise Exception('Lista episodi vuota o non recuperata')
 
@@ -392,7 +389,6 @@ class AnimeWebSite:
 
         total_eps = len(pending)
         tqdm.write(f"\nScarico {total_eps} episodi in: {download_dir}")
-        tqdm.write(f"Retry per episodio: {MAX_RETRIES_PER_EPISODE}")
         tqdm.write("Ctrl+C per fermare\n")
 
         stop_event = threading.Event()

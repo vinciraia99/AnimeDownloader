@@ -33,10 +33,9 @@ def download_from_url(my_url: str, max_workers: int):
     if result is None:
         print('Url non valido. Riprova')
         return None
-
-    customPrint("Ho scaricato l'anime : " + anime.name)
+    elif result is True:
+        customPrint("Ho scaricato l'anime : " + anime.name)
     return anime
-
 
 def main():
     anime = None
