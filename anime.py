@@ -61,6 +61,8 @@ def main():
             cleanProgram(anime)
         except Exception:
             pass
+    except OSError:
+        cleanProgram(anime)
     except Exception:
         customPrint('Eccezione trovata')
         customPrint(traceback.format_exc())
