@@ -71,8 +71,16 @@ class AnimeWorld(AnimeWebSite):
             api = AnimeSeasonResolver()
             self.season_number = api.get_season(url_anilist, url_mal)
         if self.season_number:
-            return re.sub(r'[_-]Ep[_-](\d+)[_-]((?:SUB_)?ITA)',
-                          lambda m: f' - {self.season_number}E{m.group(1).zfill(2)} - {m.group(2)}', name)
+            def _fmt(m):
+                ep_int = m.group(1).zfill(2)
+                ep_dec = f".{m.group(2)}" if m.group(2) else ""
+                return f' - {self.season_number}E{ep_int}{ep_dec} - {m.group(3)}'
+
+            return re.sub(
+                r'[_-]Ep[_-](\d+)(?:\.(\d+))?[_-]((?:SUB_)?ITA)',
+                _fmt,
+                name
+            )
         return name
 
     def getEpisodeList(self, start: int = -1) -> Optional[List[Dict]]:
