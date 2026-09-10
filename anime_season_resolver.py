@@ -1,12 +1,73 @@
 import re
+import time
+import random
+from curl_cffi import requests as curl_requests
 import requests
+
+
+class RateLimiter:
+    def __init__(self, max_calls: int, period: float):
+        self._max_calls = max_calls
+        self._period = period
+        self._calls: list[float] = []
+
+    def wait(self):
+        now = time.monotonic()
+        self._calls = [t for t in self._calls if now - t < self._period]
+        if len(self._calls) >= self._max_calls:
+            sleep_for = self._period - (now - self._calls[0])
+            if sleep_for > 0:
+                time.sleep(sleep_for)
+        self._calls.append(time.monotonic())
+
+
+def request_with_retry_cf(method_name: str, url: str, *, max_retries: int = 5, headers=None, **kwargs):
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            func = getattr(curl_requests, method_name)
+            resp = func(
+                url,
+                headers=headers,
+                impersonate="chrome",
+                timeout=15,
+                **kwargs,
+            )
+
+            if resp.status_code == 429:
+                retry_after = float(resp.headers.get("Retry-After", 30))
+                time.sleep(retry_after + random.uniform(0.5, 1.5))
+                continue
+
+            if resp.status_code in (403, 500, 502, 503, 504):
+                backoff = min(2 ** attempt, 30) + random.uniform(0, 1)
+                time.sleep(backoff)
+                continue
+
+            resp.raise_for_status()
+            return resp
+
+        except Exception as exc:
+            last_exc = exc
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(min(2 ** attempt, 30))
+
+    raise Exception(f"Numero massimo di retry superato per {url}") from last_exc
 
 
 class AniListAPI:
     def __init__(self):
         self._url = "https://graphql.anilist.co"
-        self._headers = {"Content-Type": "application/json"}
+        self._headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Origin": "https://anilist.co",
+            "Referer": "https://anilist.co/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        }
         self._cache: dict[int, dict] = {}
+        self._limiter = RateLimiter(max_calls=25, period=60)  # margine sotto i 30/min in stato degradato
 
     def _extract_anime_id(self, url: str) -> int:
         if url.isdigit():
@@ -19,13 +80,13 @@ class AniListAPI:
         raise ValueError(f"ID AniList non trovato in: {url}")
 
     def _post(self, query: str, variables: dict) -> dict:
-        response = requests.post(
+        self._limiter.wait()
+        response = request_with_retry_cf(
+            "post",
             self._url,
             json={"query": query, "variables": variables},
             headers=self._headers,
-            timeout=10
         )
-        response.raise_for_status()
 
         data = response.json()
         if not isinstance(data, dict):
@@ -109,15 +170,8 @@ class AniListAPI:
 
     def _roman_to_int(self, token: str) -> int | None:
         roman_map = {
-            "ii": 2,
-            "iii": 3,
-            "iv": 4,
-            "v": 5,
-            "vi": 6,
-            "vii": 7,
-            "viii": 8,
-            "ix": 9,
-            "x": 10,
+            "ii": 2, "iii": 3, "iv": 4, "v": 5,
+            "vi": 6, "vii": 7, "viii": 8, "ix": 9, "x": 10,
         }
         return roman_map.get(token.lower())
 
@@ -187,20 +241,10 @@ class AniListAPI:
             return True
 
         patterns = [
-            r"\bmovie\b",
-            r"\bspecial\b",
-            r"\bova\b",
-            r"\bona\b",
-            r"\brecap\b",
-            r"\bsummary\b",
-            r"\bedition\b",
-            r"\bpilot\b",
-            r"\bshorts?\b",
-            r"\bcm\b",
-            r"\bpv\b",
-            r"\bpromo\b",
-            r"\bpromotional\b",
-            r"\bpreview\b",
+            r"\bmovie\b", r"\bspecial\b", r"\bova\b", r"\bona\b",
+            r"\brecap\b", r"\bsummary\b", r"\bedition\b", r"\bpilot\b",
+            r"\bshorts?\b", r"\bcm\b", r"\bpv\b", r"\bpromo\b",
+            r"\bpromotional\b", r"\bpreview\b",
         ]
 
         return any(re.search(pattern, normalized, re.IGNORECASE) for pattern in patterns)
@@ -314,9 +358,13 @@ class AniListAPI:
 class JikanAPI:
     def __init__(self):
         self._base_url = "https://api.jikan.moe/v4"
-        self._headers = {"Accept": "application/json"}
+        self._headers = {
+            "Accept": "application/json",
+            "User-Agent": "AnimeSeasonResolver/1.0",
+        }
         self._info_cache: dict[int, dict] = {}
         self._relations_cache: dict[int, list] = {}
+        self._limiter = RateLimiter(max_calls=1, period=1.2)  # ~50 richieste/minuto, sotto i 60/min pubblici
 
     def _extract_mal_id(self, url: str) -> int:
         if url.isdigit():
@@ -329,10 +377,11 @@ class JikanAPI:
         raise ValueError(f"ID MyAnimeList non trovato in: {url}")
 
     def _get(self, endpoint: str) -> dict:
+        self._limiter.wait()
         response = requests.get(
             f"{self._base_url}{endpoint}",
             headers=self._headers,
-            timeout=10
+            timeout=15,
         )
         response.raise_for_status()
 
@@ -378,15 +427,8 @@ class JikanAPI:
 
     def _roman_to_int(self, token: str) -> int | None:
         roman_map = {
-            "ii": 2,
-            "iii": 3,
-            "iv": 4,
-            "v": 5,
-            "vi": 6,
-            "vii": 7,
-            "viii": 8,
-            "ix": 9,
-            "x": 10,
+            "ii": 2, "iii": 3, "iv": 4, "v": 5,
+            "vi": 6, "vii": 7, "viii": 8, "ix": 9, "x": 10,
         }
         return roman_map.get(token.lower())
 
@@ -449,20 +491,10 @@ class JikanAPI:
             return True
 
         patterns = [
-            r"\bmovie\b",
-            r"\bspecial\b",
-            r"\bova\b",
-            r"\bona\b",
-            r"\brecap\b",
-            r"\bsummary\b",
-            r"\bedition\b",
-            r"\bpilot\b",
-            r"\bshorts?\b",
-            r"\bcm\b",
-            r"\bpv\b",
-            r"\bpromo\b",
-            r"\bpromotional\b",
-            r"\bpreview\b",
+            r"\bmovie\b", r"\bspecial\b", r"\bova\b", r"\bona\b",
+            r"\brecap\b", r"\bsummary\b", r"\bedition\b", r"\bpilot\b",
+            r"\bshorts?\b", r"\bcm\b", r"\bpv\b", r"\bpromo\b",
+            r"\bpromotional\b", r"\bpreview\b",
         ]
 
         return any(re.search(pattern, normalized, re.IGNORECASE) for pattern in patterns)
@@ -585,13 +617,13 @@ class AnimeSeasonResolver:
         if anilist_url:
             try:
                 return self._anilist.get_season(anilist_url)
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
 
         if mal_url:
             try:
                 return self._jikan.get_season(mal_url)
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
 
         return "S01"
