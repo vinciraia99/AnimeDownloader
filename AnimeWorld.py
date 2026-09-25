@@ -105,6 +105,11 @@ class AnimeWorld(AnimeWebSite):
             info = self._anime.getInfo()
             stato = str(info.get('Stato', '')).lower()
             self.airing = 'in corso' in stato or 'ongoing' in stato
+            n_ep = info.get('Episodi', '')
+            if isinstance(n_ep, str) and n_ep.isdigit():
+                self.n_episodi = int(n_ep)
+            else:
+                self.n_episodi = -1
         except Exception:
             self.airing = False
 

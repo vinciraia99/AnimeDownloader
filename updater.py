@@ -229,14 +229,16 @@ def process_anime(tracked: dict, index: int, total: int, max_workers: int):
 
     if len(episode_list) > 0:
         anime.downloadAnime(0, episode_list, max_workers=max_workers)
-        if anime.airing is False and delete_airing(tracked["name"]):
-            customPrint("L'anime " + anime.name + " non è più in corso")
+
+    if len(episode_list) == 0:
+        if not anime.airing and anime.n_episodi != -1 and len(tracked["downloaded_numbers"]) == anime.n_episodi:
+            if delete_airing(tracked["name"]):
+                customPrint(f"L'anime {anime.name} non è più in corso")
+
+    if len(episode_list) > 0:
         return anime.name
 
     print("Non ci sono nuovi episodi")
-
-    if anime.airing is False and delete_airing(tracked["name"]):
-        customPrint("L'anime " + anime.name + " non è più in corso")
 
     return None
 

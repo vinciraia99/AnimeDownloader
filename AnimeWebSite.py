@@ -318,6 +318,7 @@ class AnimeWebSite:
         self.url = url
         self.incomplete = False
         self.airing = False
+        self.n_episodi= -1
         self.name: Optional[str] = None
         self._indexanime = 1
 
