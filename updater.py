@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore")
 
 MARKER_FILES = (".url", ".incomplete", "url")
 EPISODE_REGEX = re.compile(
-    r"^(?:.+ - S\d{2}E(\d{2}) - .+\.mp4|.+[_-]Ep[_-](\d+).+\.mp4)$",
+    r"^(?:.+ - S\d{2}E(\d{2,})(?:\.\d+)?\s-\s.+\.mp4|.+[_-]Ep[_-](\d+)(?:\.\d+)?[_-].+\.mp4)$",
     re.IGNORECASE,
 )
 
