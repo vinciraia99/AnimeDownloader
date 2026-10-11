@@ -25,9 +25,15 @@ class AnimeWorld(AnimeWebSite):
             return m.group(2)
         return url
 
-    def _is_anime_released(self) -> bool :
-        if self._anime.getInfo()["Stato"] == "Non rilasciato":
+    def _is_anime_released(self, episodes: Optional[List[Dict]] = None) -> bool:
+        stato = str(self._anime.getInfo().get("Stato", "")).lower()
+
+        if stato == "non rilasciato":
             return False
+
+        if ('in corso' in stato or 'ongoing' in stato) and not episodes:
+            return False
+
         return True
 
     def _get_best_link(self, episode) -> Optional[str]:
@@ -157,9 +163,9 @@ class AnimeWorld(AnimeWebSite):
         if listEpisodi is None:
             listEpisodi = self.getEpisodeList(start)
 
-        if not self._is_anime_released():
+        if not self._is_anime_released(listEpisodi):
             from utility import customPrint
-            customPrint("Anime non rilasciato. Aggiunto nell'update quando sará disponibile!")
+            customPrint("Aggiunto nell'update quando sará disponibile!")
             download_dir, already_downloaded = self._create_or_check_download_dir()
             self._create_incomplete_file(download_dir)
             return False
