@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import multiprocessing
+import os
 import re
 import traceback
 import warnings
@@ -13,8 +14,9 @@ from utility import *
 warnings.filterwarnings("ignore")
 
 MARKER_FILES = (".url", ".incomplete", "url")
+
 EPISODE_REGEX = re.compile(
-    r"^(?:.+ - S\d{2}E(\d{2,})(?:\.\d+)?\s-\s.+\.mp4|.+[_-]Ep[_-](\d+)(?:\.\d+)?[_-].+\.mp4)$",
+    r"^(?:.+ - S\d{2}E(\d{2,}(?:\.\d+)?)\s-\s.+\.mp4|.+[_-]Ep[_-](\d+(?:\.\d+)?)[_-].+\.mp4)$",
     re.IGNORECASE,
 )
 
@@ -54,7 +56,7 @@ def get_mp4_files(dirname: str) -> list[str]:
     return sorted(files)
 
 
-def extract_episode_number(filename: str) -> Optional[int]:
+def extract_episode_number(filename: str) -> Optional[float]:
     match = EPISODE_REGEX.match(filename)
     if not match:
         return None
@@ -63,10 +65,10 @@ def extract_episode_number(filename: str) -> Optional[int]:
     if episode is None:
         return None
 
-    return int(episode)
+    return float(episode)
 
 
-def get_downloaded_episode_numbers(dirname: str) -> list[int]:
+def get_downloaded_episode_numbers(dirname: str) -> list[float]:
     numbers = []
     for filename in get_mp4_files(dirname):
         number = extract_episode_number(filename)
@@ -75,14 +77,20 @@ def get_downloaded_episode_numbers(dirname: str) -> list[int]:
     return sorted(set(numbers))
 
 
-def get_last_downloaded_episode(dirname: str) -> int:
+def get_last_downloaded_episode(dirname: str) -> float:
     numbers = get_downloaded_episode_numbers(dirname)
     return max(numbers) if numbers else 0
 
 
 def is_sequence_complete(dirname: str) -> bool:
+    """True solo se ci sono solo episodi interi e consecutivi.
+    Se c'è un episodio frazionario (es. 13.5) la sequenza NON è considerata
+    completa, così si usa il confronto con la lista completa del sito."""
     numbers = get_downloaded_episode_numbers(dirname)
     if not numbers:
+        return False
+
+    if any(not float(n).is_integer() for n in numbers):
         return False
 
     for i in range(1, len(numbers)):
@@ -183,15 +191,15 @@ def build_tracked_list() -> list[dict]:
     return tracked
 
 
-def filter_missing_episodes(episode_list: list[dict], downloaded_numbers: list[int]) -> list[dict]:
-    already_downloaded = set(downloaded_numbers)
+def filter_missing_episodes(episode_list: list[dict], downloaded_numbers: list[float]) -> list[dict]:
+    already_downloaded = set(float(n) for n in downloaded_numbers)
     filtered = []
 
     for ep in episode_list:
         try:
-            ep_number = int(ep.get("number", 0))
+            ep_number = float(ep.get("number", 0))
         except Exception:
-            ep_number = 0
+            ep_number = 0.0
 
         if ep_number not in already_downloaded:
             filtered.append(ep)
@@ -217,7 +225,7 @@ def process_anime(tracked: dict, index: int, total: int, max_workers: int):
         return None
 
     if tracked["is_complete"] and tracked["last_episode"] > 0:
-        episode_list = anime.getEpisodeList(tracked["last_episode"])
+        episode_list = anime.getEpisodeList(int(tracked["last_episode"]))
     else:
         episode_list = anime.getEpisodeList()
         if episode_list is None:
