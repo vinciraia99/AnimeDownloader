@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Iterable
 import re
 from bs4 import BeautifulSoup
 import animeworld as aw
@@ -89,8 +89,16 @@ class AnimeWorld(AnimeWebSite):
             )
         return name
 
-    def getEpisodeList(self, start: int = -1) -> Optional[List[Dict]]:
+    def getEpisodeList(self, start: int = -1, skip_names: Optional[Iterable[str]] = None) -> Optional[List[Dict]]:
+        """
+        skip_names: nomi file (.mp4) già presenti su disco. Gli episodi il cui nome
+        finale coincide vengono scartati e non compaiono nella lista restituita.
+        Quando è valorizzato, l'output a schermo è silenzioso: vengono mostrati
+        solo gli episodi nuovi.
+        """
         path = self._parse_url()
+        skip_lower = {str(n).lower() for n in skip_names} if skip_names else set()
+        quiet = bool(skip_lower)
 
         try:
             self._anime = aw.Anime(link=path)
@@ -135,27 +143,40 @@ class AnimeWorld(AnimeWebSite):
         if total == 0:
             return []
 
-        print(f'\nAnime:   {self.name}')
-        print(f"In corso:  {'Sì' if self.airing else 'No'}")
-        print(f'Episodi: {total}\n')
+        def _print_header(count: int):
+            print(f'\nAnime:   {self.name}')
+            print(f"In corso:  {'Sì' if self.airing else 'No'}")
+            print(f'Episodi: {count}\n')
+
+        if not quiet:
+            _print_header(total)
 
         final_list = []
-        with tqdm(total=total, desc='Analisi episodi', unit='ep', dynamic_ncols=True) as pbar:
+        with tqdm(total=total, desc='Analisi episodi', unit='ep',
+                  dynamic_ncols=True, disable=quiet) as pbar:
             for ep in episodes:
                 link = self._get_best_link(ep)
                 name = self._name_from_url(link) if link else f'Ep_{ep.number}.mp4'
                 name = self._normalize_episode_name(name)
-                final_list.append({
-                    'episode': ep,
-                    'number': str(ep.number),
-                    'name': name,
-                    'url': link or '',
-                })
-                pbar.set_postfix_str(name[:50])
-                pbar.update(1)
 
-        for ep in final_list:
-            tqdm.write(f"  [EP {ep['number']:>3}] {ep['name']}")
+                if name.lower() not in skip_lower:
+                    final_list.append({
+                        'episode': ep,
+                        'number': str(ep.number),
+                        'name': name,
+                        'url': link or '',
+                    })
+
+                if not quiet:
+                    pbar.set_postfix_str(name[:50])
+                    pbar.update(1)
+
+        if quiet and final_list:
+            _print_header(len(final_list))
+
+        if final_list:
+            for ep in final_list:
+                tqdm.write(f"  [EP {ep['number']:>3}] {ep['name']}")
 
         return final_list
 

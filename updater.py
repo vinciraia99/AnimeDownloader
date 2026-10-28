@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import multiprocessing
 import os
 import re
@@ -207,6 +208,13 @@ def filter_missing_episodes(episode_list: list[dict], downloaded_numbers: list[f
     return filtered
 
 
+def supports_skip_names(anime) -> bool:
+    try:
+        return "skip_names" in inspect.signature(anime.getEpisodeList).parameters
+    except (TypeError, ValueError):
+        return False
+
+
 def process_anime(tracked: dict, index: int, total: int, max_workers: int):
     print(
         "== Verifico se ci sono nuovi episodi per l'anime "
@@ -224,7 +232,12 @@ def process_anime(tracked: dict, index: int, total: int, max_workers: int):
         print("Url non valido. Riprova")
         return None
 
-    if tracked["is_complete"] and tracked["last_episode"] > 0:
+    existing_names = {n.lower() for n in get_mp4_files(tracked["name"])}
+
+    if supports_skip_names(anime):
+        # Filtro per nome file: robusto anche con .5 e stagioni che non partono da 1
+        episode_list = anime.getEpisodeList(skip_names=existing_names)
+    elif tracked["is_complete"] and tracked["last_episode"] > 0:
         episode_list = anime.getEpisodeList(int(tracked["last_episode"]))
     else:
         episode_list = anime.getEpisodeList()
@@ -235,15 +248,20 @@ def process_anime(tracked: dict, index: int, total: int, max_workers: int):
     if episode_list is None:
         episode_list = []
 
+    files_before = len(get_mp4_files(tracked["name"]))
+
     if len(episode_list) > 0:
         anime.downloadAnime(0, episode_list, max_workers=max_workers)
 
-    if len(episode_list) == 0:
+    files_after = len(get_mp4_files(tracked["name"]))
+    has_new_files = files_after > files_before
+
+    if not has_new_files:
         if not anime.airing and anime.n_episodi != -1 and len(tracked["downloaded_numbers"]) == anime.n_episodi:
             if delete_airing(tracked["name"]):
                 customPrint(f"L'anime {anime.name} non è più in corso")
 
-    if len(episode_list) > 0:
+    if has_new_files:
         return anime.name
 
     print("Non ci sono nuovi episodi")
